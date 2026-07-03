@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Recomposição de Margem</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0f1117;--sur:#1a1d27;--sur2:#22263a;--bdr:#2e3350;--blue:#4f8ef7;--bl:#7ab3ff;--grn:#22c55e;--red:#ef4444;--yel:#f59e0b;--pur:#a855f7;--cyn:#06b6d4;--txt:#e2e8f0;--mu:#94a3b8;--dim:#64748b;--r:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px}
+.hdr{background:linear-gradient(135deg,#1a1d27,#16213e);border-bottom:1px solid var(--bdr);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;background:linear-gradient(135deg,var(--blue),var(--pur));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.hdr-t h1{font-size:16px;font-weight:700}.hdr-t p{font-size:11px;color:var(--mu)}
+.btn{padding:7px 13px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--bl)}
+.btn-o{background:transparent;border:1px solid var(--bdr);color:var(--mu)}.btn-o:hover{border-color:var(--blue);color:var(--blue)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.layout{display:flex;min-height:calc(100vh - 61px)}
+.sb{background:var(--sur);border-right:1px solid var(--bdr);overflow-y:auto;transition:width .25s,min-width .25s;width:252px;min-width:252px}
+.sb.closed{width:40px;min-width:40px}
+.sb-in{padding:12px;width:252px}
+.sb.closed .sb-in{opacity:0;pointer-events:none}
+.sb-tog{width:100%;background:none;border:1px solid var(--bdr);border-radius:6px;color:var(--mu);padding:6px 8px;cursor:pointer;font-size:12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;transition:.15s}
+.sb-tog:hover{border-color:var(--blue);color:var(--blue)}
+.sb.closed .sb-tog{justify-content:center}
+.sb-sec{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:13px 0 6px;font-weight:700}
+.fl{margin-bottom:10px}.fl-l{font-size:11px;color:var(--mu);margin-bottom:4px}
+.fi,.fs{width:100%;padding:7px 9px;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;color:var(--txt);font-size:12px;outline:none}
+.fi:focus,.fs:focus{border-color:var(--blue)}.fs option{background:var(--sur2)}
+.chk-g{display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto}
+.chk-i{display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 4px;border-radius:5px}
+.chk-i:hover{background:var(--sur2)}.chk-i input[type=checkbox]{accent-color:var(--blue)}
+.chk-i span{font-size:12px;color:var(--mu)}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rst{width:100%;padding:7px;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;color:var(--mu);font-size:12px;cursor:pointer;margin-top:6px}
+.rst:hover{border-color:var(--red);color:var(--red)}
+.main{flex:1;padding:18px;overflow-y:auto;min-width:0}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.cef{background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(34,197,94,.05));border:1.5px solid rgba(34,197,94,.4);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.cef::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--grn)}
+.cef-i{font-size:28px;flex-shrink:0}.cef-b{flex:1}
+.cef-l{font-size:10px;color:#86efac;text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px}
+.cef-v{font-size:24px;font-weight:800;color:#4ade80}.cef-s{font-size:11px;color:#86efac;margin-top:2px}
+.cef-bd{display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,.2);border:1px solid rgba(34,197,94,.4);border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;color:#4ade80;margin-top:5px}
+.cef-r{text-align:right;flex-shrink:0}.cef-p{font-size:20px;font-weight:700;color:#4ade80}
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden;transition:.15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.card.blue::before{background:var(--blue)}.card.grn::before{background:var(--grn)}.card.red::before{background:var(--red)}.card.yel::before{background:var(--yel)}.card.pur::before{background:var(--pur)}.card.cyn::before{background:var(--cyn)}
+.c-i{font-size:18px;margin-bottom:6px}.c-l{font-size:10px;color:var(--dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;line-height:1.3}
+.c-v{font-size:18px;font-weight:700;line-height:1.2}.c-s{font-size:10px;color:var(--mu);margin-top:2px}
+.c-bd{position:absolute;top:10px;right:10px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.bok{background:rgba(34,197,94,.15);color:var(--grn)}.bpd{background:rgba(245,158,11,.15);color:var(--yel)}.bcn{background:rgba(239,68,68,.15);color:var(--red)}
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.cg3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.cc{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:14px}
+.cc-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cc-t{font-size:13px;font-weight:600}.cc-s{font-size:11px;color:var(--mu)}
+.cw{position:relative;height:215px}.cw.t{height:275px}.cw.s{height:165px}
+.cw canvas{display:block;width:100%!important;height:100%!important}
+.pi-r{display:flex;justify-content:space-between;margin-bottom:3px}
+.pb-bg{background:var(--sur2);border-radius:4px;height:8px;overflow:hidden}
+.pb-f{height:100%;border-radius:4px;transition:width 1.2s ease}
+.ts{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.th{padding:12px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.tsrch{display:flex;align-items:center;gap:7px;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;padding:6px 11px;min-width:190px}
+.tsrch input{background:none;border:none;outline:none;color:var(--txt);font-size:12px;width:100%}
+.tw{overflow-x:auto;max-height:420px;overflow-y:auto}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;background:var(--sur2);z-index:2}
+th{padding:9px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--bdr);user-select:none}
+th:hover{color:var(--blue)}
+td{padding:8px 10px;border-bottom:1px solid rgba(46,51,80,.4);font-size:12px;white-space:nowrap}
+tr:hover td{background:var(--sur2)}
+.sb2{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;display:inline-block}
+.s-ok{background:rgba(34,197,94,.15);color:var(--grn)}.s-pd{background:rgba(245,158,11,.15);color:var(--yel)}.s-cn{background:rgba(239,68,68,.15);color:var(--red)}.s-ot{background:rgba(148,163,184,.1);color:var(--dim)}
+.tf{padding:8px 14px;border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.pg{display:flex;gap:4px}
+.pbt{padding:4px 8px;border-radius:5px;border:1px solid var(--bdr);background:none;color:var(--mu);font-size:11px;cursor:pointer}
+.pbt.a{background:var(--blue);color:#fff;border-color:var(--blue)}.pbt:hover:not(.a){border-color:var(--blue);color:var(--blue)}
+.hi td{background:rgba(79,142,247,.06)!important}
+.rl{display:flex;flex-direction:column;gap:6px}
+.ri{display:flex;align-items:center;gap:8px;padding:7px 9px;background:var(--sur2);border-radius:8px}
+.ri:hover{background:#2a2f4a}
+.rnum{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.rn1{background:rgba(251,191,36,.2);color:#fbbf24}.rn2{background:rgba(148,163,184,.15);color:#94a3b8}.rn3{background:rgba(217,119,6,.15);color:#d97706}.rnn{background:var(--sur);color:var(--dim)}
+.ri-info{flex:1;min-width:0}.ri-nm{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ri-dt{font-size:10px;color:var(--mu)}
+.ri-val{font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0}
+.tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--sur);border:1px solid var(--bdr);border-radius:9px;padding:3px;flex-wrap:wrap;width:fit-content}
+.tab{padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;color:var(--mu);transition:.15s}
+.tab.active{background:var(--blue);color:#fff}.tab:hover:not(.active){color:var(--txt)}
+.srow{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px}
+.sbox{background:var(--sur2);border-radius:8px;padding:9px 11px;text-align:center}
+.sv{font-size:15px;font-weight:700;margin-bottom:2px}.sl{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;line-height:1.4}
+.dzone{background:rgba(79,142,247,.07);border:1.5px dashed rgba(79,142,247,.4);border-radius:10px;padding:26px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:16px}
+.dzone:hover,.dzone.over{border-color:var(--blue);background:rgba(79,142,247,.12)}
+.sync-toast{position:fixed;bottom:12px;right:12px;background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:8px 14px;font-size:11px;color:var(--mu);z-index:300;opacity:0;transition:opacity .4s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.sync-toast.show{opacity:1}
+#mdt tr{border-bottom:1px solid rgba(46,51,80,.4)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--blue)}
+@media print{.sb,.hdr .btn,.tabs,.sync-toast{display:none!important}.main{padding:0}}
+@media(max-width:900px){.cg2,.cg3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="logo">📊</div>
+    <div class="hdr-t"><h1>Recomposição de Margem</h1><p id="hdate">Carregando...</p></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-o btn-sm" onclick="resetF()">↺ Resetar Filtros</button>
+  </div>
+</div>
+
+<div class="layout">
+<div class="sb" id="sb">
+  <div class="sb-in">
+    <button class="sb-tog" onclick="toggleSB()"><span id="sb-lbl">◀ Recolher</span></button>
+    <div class="sb-sec">🔍 Busca</div>
+    <div class="fl"><input class="fi" id="f-s" placeholder="Negociação, cliente, CI..." oninput="applyF()"></div>
+    <div class="sb-sec">📅 Mês</div>
+    <div class="fl"><div class="chk-g" id="f-mes"></div></div>
+    <div class="sb-sec">📦 Fonte</div>
+    <div class="fl"><div class="chk-g" id="f-fonte"></div></div>
+    <div class="sb-sec">🏷 Status</div>
+    <div class="fl"><div class="chk-g" id="f-status"></div></div>
+    <div class="sb-sec">👤 CI</div>
+    <div class="fl"><select class="fs" id="f-ci" onchange="applyF()"><option value="">Todos</option></select></div>
+    <div class="sb-sec">💰 Valor Pedido (R$)</div>
+    <div class="fl"><div class="fl-l">De</div><input class="fi" id="f-vp1" type="number" placeholder="0" oninput="applyF()"></div>
+    <div class="fl"><div class="fl-l">Até</div><input class="fi" id="f-vp2" type="number" placeholder="sem limite" oninput="applyF()"></div>
+    <div class="sb-sec">🎯 Valor Recomposto (R$)</div>
+    <div class="fl"><div class="fl-l">De</div><input class="fi" id="f-vr1" type="number" placeholder="0" oninput="applyF()"></div>
+    <div class="fl"><div class="fl-l">Até</div><input class="fi" id="f-vr2" type="number" placeholder="sem limite" oninput="applyF()"></div>
+    <button class="rst" onclick="resetF()">✕ Limpar filtros</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="tabs">
+    <div class="tab active" onclick="goTab('overview',this)">Visão Geral</div>
+    <div class="tab" onclick="goTab('clientes',this)">Clientes</div>
+    <div class="tab" onclick="goTab('negociacoes',this)">Negociações</div>
+    <div class="tab" onclick="goTab('margem',this)">Margem</div>
+    <div class="tab" onclick="goTab('verba',this)">Verba</div>
+    <div class="tab" onclick="goTab('importar',this)">⬆ Importar</div>
+  </div>
+
+  <!-- VISÃO GERAL -->
+  <div id="t-overview" class="tab-pane active">
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-bottom:12px">
+      <button class="btn btn-o btn-sm" onclick="doXls('overview')">⬇ Excel</button>
+      <button class="btn btn-o btn-sm" onclick="doPdf('overview')">📄 PDF</button>
+    </div>
+    <div id="cef-wrap"></div>
+    <div class="cg" id="kpi"></div>
+    <div class="cg2">
+      <div class="cc"><div class="cc-h"><span class="cc-t">📈 Evolução Mensal — Valor Recomposto</span></div><div class="cw"><canvas id="c-evol"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">🥧 Distribuição por Status</span></div><div class="cw"><canvas id="c-status"></canvas></div></div>
+    </div>
+    <div class="cg2">
+      <div class="cc"><div class="cc-h"><span class="cc-t">📊 MC Atual vs MC Recomposição por Mês</span></div><div class="cw"><canvas id="c-mc"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">📦 Valor Recomposto por Fonte</span></div><div class="cw"><canvas id="c-fonte"></canvas></div></div>
+    </div>
+    <!-- TABELA -->
+    <div class="ts">
+      <div class="th">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:600">📋 Tabela de Negociações</span>
+          <span class="bok" style="padding:2px 8px;border-radius:20px;font-size:10px" id="tbl-bdg">0</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="tsrch"><span>🔍</span><input id="tbl-q" placeholder="Pesquisar..." oninput="tSrch()"></div>
+          <label style="font-size:11px;color:var(--mu);display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap">
+            <input type="checkbox" id="tbl-asc" onchange="renderT()" style="accent-color:var(--blue)"> Mais antigo primeiro
+          </label>
+          <button class="btn btn-o btn-sm" onclick="doXls('table')">⬇ Excel</button>
+          <button class="btn btn-o btn-sm" onclick="doPdf('table')">📄 PDF</button>
+        </div>
+      </div>
+      <div class="tw">
+        <table><thead><tr>
+          <th onclick="srtT(0)">Mês ↕</th>
+          <th onclick="srtT(1)">Fonte ↕</th>
+          <th onclick="srtT(2)">CI ↕</th>
+          <th onclick="srtT(3)">Cliente ↕</th>
+          <th onclick="srtT(4)">Data ↕</th>
+          <th onclick="srtT(5)">Negociação ↕</th>
+          <th onclick="srtT(6)">Valor Pedido ↕</th>
+          <th onclick="srtT(7)">Receita Líquida ↕</th>
+          <th onclick="srtT(8)">Valor MC ↕</th>
+          <th onclick="srtT(9)">MC Atual ↕</th>
+          <th onclick="srtT(10)">Valor Recomp ↕</th>
+          <th onclick="srtT(11)">MC Recomp ↕</th>
+          <th onclick="srtT(12)">Status ↕</th>
+          <th onclick="srtT(13)">Coluna1 ↕</th>
+          <th onclick="srtT(14)">NUMPED ↕</th>
+          <th onclick="srtT(15)">VALIDA ↕</th>
+          <th style="color:#4ade80">✅ Efetivo</th>
+        </tr></thead><tbody id="tbl-body"></tbody></table>
+      </div>
+      <div class="tf"><span style="font-size:11px;color:var(--dim)" id="tbl-info"></span><div class="pg" id="tbl-pg"></div></div>
+    </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div id="t-clientes" class="tab-pane">
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-bottom:12px">
+      <button class="btn btn-o btn-sm" onclick="doXls('clientes')">⬇ Excel</button>
+      <button class="btn btn-o btn-sm" onclick="doPdf('clientes')">📄 PDF</button>
+    </div>
+    <div class="cg2">
+      <div class="cc"><div class="cc-h"><span class="cc-t">🏆 Top 10 — Maior Valor Recomposto</span></div><div class="cw t"><canvas id="c-tcli"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">💸 Top 10 — Maior Consumo de Verba</span></div><div class="cw t"><canvas id="c-tverba"></canvas></div></div>
+    </div>
+    <div class="cc"><div class="cc-h"><span class="cc-t">🥇 Ranking de Clientes</span></div><div class="rl" id="rank-cli"></div></div>
+  </div>
+
+  <!-- NEGOCIAÇÕES -->
+  <div id="t-negociacoes" class="tab-pane">
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-bottom:12px">
+      <button class="btn btn-o btn-sm" onclick="doXls('negociacoes')">⬇ Excel</button>
+      <button class="btn btn-o btn-sm" onclick="doPdf('negociacoes')">📄 PDF</button>
+    </div>
+    <div class="cg2">
+      <div class="cc"><div class="cc-h"><span class="cc-t">🏆 Top 10 Maiores Valores a Recompor</span></div><div class="cw t"><canvas id="c-tnegs"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">📊 Estatísticas</span></div><div id="extra-stats" style="padding-top:4px"></div></div>
+    </div>
+    <div class="cc"><div class="cc-h"><span class="cc-t">🥇 Ranking — Maior Impacto Financeiro</span></div><div class="rl" id="rank-neg"></div></div>
+  </div>
+
+  <!-- MARGEM -->
+  <div id="t-margem" class="tab-pane">
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-bottom:12px">
+      <button class="btn btn-o btn-sm" onclick="doXls('margem')">⬇ Excel</button>
+      <button class="btn btn-o btn-sm" onclick="doPdf('margem')">📄 PDF</button>
+    </div>
+    <div id="m-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;margin-bottom:14px"></div>
+    <div class="cg2">
+      <div class="cc"><div class="cc-h"><span class="cc-t">📊 MC Atual vs Recomposição</span><span class="cc-s">Até 40 válidas</span></div><div class="cw t"><canvas id="c-mc2"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">📈 Evolução da Margem Média por Mês</span></div><div class="cw t"><canvas id="c-mcavg"></canvas></div></div>
+    </div>
+    <div class="cg2" style="margin-bottom:14px">
+      <div class="cc"><div class="cc-h"><span class="cc-t">🔍 Distribuição de MC Atual</span></div><div class="cw"><canvas id="c-mcdist"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">📉 Ganho de Margem por Mês</span></div><div class="cw"><canvas id="c-mcganho"></canvas></div></div>
+    </div>
+    <div class="cc" style="margin-bottom:14px">
+      <div class="cc-h"><span class="cc-t">🔢 Detalhamento por Negociação (válidas)</span></div>
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse" id="mdt">
+          <thead style="position:sticky;top:0;background:#22263a">
+            <tr>
+              <th style="padding:7px 10px;font-size:11px;color:var(--mu);text-align:left;border-bottom:1px solid var(--bdr)">Negociação</th>
+              <th style="padding:7px 10px;font-size:11px;color:var(--mu);border-bottom:1px solid var(--bdr)">Mês</th>
+              <th style="padding:7px 10px;font-size:11px;color:#ef4444;text-align:right;border-bottom:1px solid var(--bdr)">MC Atual</th>
+              <th style="padding:7px 10px;font-size:11px;color:#22c55e;text-align:right;border-bottom:1px solid var(--bdr)">MC Recomp.</th>
+              <th style="padding:7px 10px;font-size:11px;color:#f59e0b;text-align:right;border-bottom:1px solid var(--bdr)">Ganho</th>
+              <th style="padding:7px 10px;font-size:11px;color:#4f8ef7;text-align:right;border-bottom:1px solid var(--bdr)">Valor Recomp.</th>
+              <th style="padding:7px 10px;font-size:11px;color:var(--mu);text-align:center;border-bottom:1px solid var(--bdr)">Visual</th>
+              <th style="padding:7px 10px;font-size:11px;color:var(--mu);border-bottom:1px solid var(--bdr)">Status</th>
+            </tr>
+          </thead>
+          <tbody id="mdt-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERBA -->
+  <div id="t-verba" class="tab-pane">
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-bottom:12px">
+      <button class="btn btn-o btn-sm" onclick="doXls('verba')">⬇ Excel</button>
+      <button class="btn btn-o btn-sm" onclick="doPdf('verba')">📄 PDF</button>
+    </div>
+    <div class="cg2">
+      <div class="cc"><div class="cc-h"><span class="cc-t">💰 Consumo de Verba por Fonte</span></div><div id="verba-prog"></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">📊 Evolução do Consumo de Verba</span></div><div class="cw"><canvas id="c-vevol"></canvas></div></div>
+    </div>
+    <div class="cg3">
+      <div class="cc"><div class="cc-h"><span class="cc-t">✅ % Negociações OK</span></div><div class="cw s"><canvas id="c-pok"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">❌ % Canceladas</span></div><div class="cw s"><canvas id="c-pcan"></canvas></div></div>
+      <div class="cc"><div class="cc-h"><span class="cc-t">⏳ % Em Processo</span></div><div class="cw s"><canvas id="c-pproc"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- IMPORTAR -->
+  <div id="t-importar" class="tab-pane">
+    <div class="cc" style="max-width:820px;margin:0 auto">
+      <div class="cc-h"><span class="cc-t">⬆ Importar Planilha de Negociações</span></div>
+      <div style="background:rgba(79,142,247,.07);border:1px solid rgba(79,142,247,.2);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--mu);line-height:1.6">
+        <strong style="color:var(--txt)">ℹ Como usar:</strong> selecione qualquer aba da planilha de recomposição. O sistema detecta automaticamente colunas como <strong>CI · Cliente · Negociação · Valor Pedido · Receita Líquida · Valor MC · MC Atual · Valor a Recompor · MC Recomposta · Status · NUMPED · VALIDA</strong>.
+        Após confirmar, <strong style="color:#4ade80">todos os gráficos e tabelas atualizam imediatamente</strong>.
+      </div>
+      <div class="dzone" id="dzone" onclick="document.getElementById('f-imp').click()"
+        ondragover="event.preventDefault();this.classList.add('over')"
+        ondragleave="this.classList.remove('over')"
+        ondrop="event.preventDefault();this.classList.remove('over');doDrop(event)">
+        <div style="font-size:34px;margin-bottom:9px">📂</div>
+        <div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px">Clique ou arraste a planilha aqui</div>
+        <div style="font-size:12px;color:var(--dim)">Suporta .xlsx, .xls, .csv — todas as abas detectadas automaticamente</div>
+        <input type="file" id="f-imp" accept=".xlsx,.xls,.csv" style="display:none" onchange="readFile(event)">
+      </div>
+      <div id="imp-map" style="display:none">
+        <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px">🗂 Mapeamento de Colunas Detectadas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px" id="map-grid"></div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
+          <div style="flex:1;min-width:150px">
+            <div class="fl-l">Mês da Planilha</div>
+            <select class="fs" id="imp-mes" onchange="document.getElementById('imp-mes2-w').style.display=this.value==='outro'?'block':'none'">
+              <option value="">Selecione...</option>
+              <option>Março/2026</option><option>Maio/2026</option><option>Junho/2026</option>
+              <option>Julho/2026</option><option>Agosto/2026</option><option>Setembro/2026</option>
+              <option value="outro">Outro (digitar)</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:150px;display:none" id="imp-mes2-w">
+            <div class="fl-l">Mês (digitar)</div>
+            <input class="fi" id="imp-mes2" placeholder="Ex: Julho/2026">
+          </div>
+          <div style="flex:1;min-width:150px">
+            <div class="fl-l">Fonte / Fornecedor</div>
+            <select class="fs" id="imp-fonte">
+              <option value="">Selecione...</option>
+              <option>VERBA ANIBAL</option><option>OMO</option><option>DIAGEO</option>
+            </select>
+          </div>
+        </div>
+        <div id="imp-prev" style="margin-bottom:14px;overflow-x:auto"></div>
+        <div style="display:flex;gap:9px">
+          <button class="btn btn-p" onclick="doImport()" style="flex:1">✅ Confirmar e Atualizar Dashboard</button>
+          <button class="btn btn-o" onclick="cancelImp()">✕ Cancelar</button>
+        </div>
+      </div>
+      <div id="imp-log" style="display:none;background:var(--sur2);border-radius:8px;padding:12px;font-size:12px;color:var(--mu);line-height:1.7;margin-top:12px"></div>
+    </div>
+  </div>
+
+</div></div>
+
+<div class="sync-toast" id="sync-toast"><span id="sync-msg">Sincronizado</span></div>
+<script>
+const SK = 'dash_recomp_v7';
+const BASE = {"records":[{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"655011","cliente":"5835446","data":"2026-03-18 00:00:00","negociacao":"95950","valor_pedido":45000.0,"receita_liquida":39204.0,"valor_mc":132.0,"mc_atual":0.0034,"valor_recomp":654.0,"mc_recomp":0.02,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"10418510","data":"2026-03-19 00:00:00","negociacao":"96306","valor_pedido":851880.0,"receita_liquida":742157.86,"valor_mc":1320.0,"mc_atual":0.0018,"valor_recomp":50640.0,"mc_recomp":0.02,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8811977","data":"2026-03-19 00:00:00","negociacao":"96259","valor_pedido":90712.44,"receita_liquida":79028.68,"valor_mc":5843.88,"mc_atual":0.0739,"valor_recomp":5843.88,"mc_recomp":0.0739,"status":"REINICIADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"655011","cliente":"8809731","data":"20/03/2026","negociacao":"96682","valor_pedido":548042.8,"receita_liquida":477454.89,"valor_mc":52520.0379,"mc_atual":0.001088862388711793,"valor_recomp":11791.2732,"mc_recomp":0.02,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8809731","data":"2026-03-20 00:00:00","negociacao":"96449","valor_pedido":340752.0,"receita_liquida":296863.14,"valor_mc":528.0,"mc_atual":0.0018,"valor_recomp":20256.0,"mc_recomp":0.02,"status":"SUBSTITUIDA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"1849238","data":"2026-03-24 00:00:00","negociacao":"97141","valor_pedido":845760.0,"receita_liquida":675423.94,"valor_mc":17280.0,"mc_atual":0.0256,"valor_recomp":29999.675799999997,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"993128","data":"26/03/2026","negociacao":"97374","valor_pedido":324240.0,"receita_liquida":261880.54,"valor_mc":13.178450695995707,"mc_atual":5.032237483547157e-05,"valor_recomp":5224.432349304005,"mc_recomp":0.02,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"655011","cliente":"7704160","data":"2026-03-26 00:00:00","negociacao":"97472","valor_pedido":247068.72,"receita_liquida":197174.55,"valor_mc":8834.4,"mc_atual":0.0448,"valor_recomp":2372.33,"mc_recomp":0.0448,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"952501","data":"2026-03-26 00:00:00","negociacao":"97369","valor_pedido":357761.76,"receita_liquida":239508.0,"valor_mc":9917.4,"mc_atual":0.0414,"valor_recomp":13125.0384,"mc_recomp":0.0548,"status":"SEM RECOMPOSIÇÃO","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"VERBA ANIBAL","ci":"655011","cliente":"8610740","data":"01/04/2026","negociacao":"98420","valor_pedido":1091664.0,"receita_liquida":921337.1244,"valor_mc":18150.34135068,"mc_atual":0.0197,"valor_recomp":46343.257357320006,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"655011","cliente":"10337725","data":"2026-03-05 00:00:00","negociacao":"93370","valor_pedido":359721.6,"receita_liquida":303596.04,"valor_mc":-168.0,"mc_atual":-0.006,"valor_recomp":21403.2,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"8177022","data":"2026-03-06 00:00:00","negociacao":"93378","valor_pedido":76211.52,"receita_liquida":64320.62,"valor_mc":6.432062,"mc_atual":0.0001,"valor_recomp":5141.986246613325,"mc_recomp":0.08,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"6265188","data":"2026-03-06 00:00:00","negociacao":"93551","valor_pedido":629512.8,"receita_liquida":531293.06538,"valor_mc":-2922.11185959,"mc_atual":-0.0055,"valor_recomp":40121.23259822116,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"8177022","data":"2026-03-09 00:00:00","negociacao":"93720","valor_pedido":42824.0,"receita_liquida":36142.39,"valor_mc":-198.783145,"mc_atual":-0.0055,"valor_recomp":3452.183258899399,"mc_recomp":0.09,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"8177022","data":"2026-03-09 00:00:00","negociacao":"93713","valor_pedido":214327.68,"receita_liquida":180887.2,"valor_mc":1302.38784,"mc_atual":0.0072,"valor_recomp":11357.498172307394,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"6265188","data":"2026-03-09 00:00:00","negociacao":"93736","valor_pedido":623044.8,"receita_liquida":525834.24,"valor_mc":-8065.6,"mc_atual":-0.0153,"valor_recomp":44861.635061717825,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"655011","cliente":"2255307","data":"10/03/2026","negociacao":"94082","valor_pedido":119160.0,"receita_liquida":82599.16,"valor_mc":2287.996732,"mc_atual":0.0277,"valor_recomp":3432.5795059354286,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"6265188","data":"10/03/2026","negociacao":"93986","valor_pedido":637015.68,"receita_liquida":537625.31,"valor_mc":-887.04,"mc_atual":-0.0016,"valor_recomp":38539.25003509464,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"10337725","data":"2026-03-11 00:00:00","negociacao":"94554","valor_pedido":179860.8,"receita_liquida":151798.02,"valor_mc":-84.0,"mc_atual":-0.0006,"valor_recomp":10704.219220377505,"mc_recomp":0.07,"status":"SUBISTITUIDA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"10053540","data":"2026-03-16 00:00:00","negociacao":"95422","valor_pedido":155879.36,"receita_liquida":151798.01868,"valor_mc":6254.078369616001,"mc_atual":0.0412,"valor_recomp":3800.16,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"655011","cliente":"10053540","data":"2026-03-16 00:00:00","negociacao":"95543","valor_pedido":155879.36,"receita_liquida":131558.28,"valor_mc":-78.934968,"mc_atual":-0.0006,"valor_recomp":9276.989990993838,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"655011","cliente":"10053540","data":"2026-03-17 00:00:00","negociacao":"95586","valor_pedido":179860.8,"receita_liquida":151798.02,"valor_mc":-84.0,"mc_atual":-0.0006,"valor_recomp":10704.219220377505,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"10053540","data":"2026-03-27 00:00:00","negociacao":"97967","valor_pedido":179860.8,"receita_liquida":151798.01868,"valor_mc":440.214254172,"mc_atual":0.0029,"valor_recomp":10188.29,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"10053540","data":"2026-03-31 00:00:00","negociacao":"98318","valor_pedido":169764.0,"receita_liquida":143276.5719,"valor_mc":-11204.227922580001,"mc_atual":-0.0782,"valor_recomp":18540.82,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Março/2026","fonte":"OMO","ci":"","cliente":"10053540","data":"2026-04-02 00:00:00","negociacao":"98437","valor_pedido":424410.0,"receita_liquida":343863.77,"valor_mc":-26890.146814000003,"mc_atual":-0.0782,"valor_recomp":44696.620143810316,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Maio/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"10570617","data":"2026-05-14 00:00:00","negociacao":"105226","valor_pedido":1890000.0,"receita_liquida":1757700.0,"valor_mc":110250.0,"mc_atual":0.0627,"valor_recomp":15500.0,"mc_recomp":0.07,"status":"SEM RECOMPOSIÇÃO","coluna1":"","numped":"","valida":""},{"mes":"Maio/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"7750766","data":"2026-05-19 00:00:00","negociacao":"106301","valor_pedido":888570.0,"receita_liquida":826370.1,"valor_mc":37434.56553,"mc_atual":0.0453,"valor_recomp":20411.341470000007,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Maio/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"7750766","data":"20/05/2026","negociacao":"106558","valor_pedido":363909.12,"receita_liquida":338435.48,"valor_mc":15364.970792,"mc_atual":0.0454,"valor_recomp":8325.512808,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Maio/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8998074","data":"2026-05-21 00:00:00","negociacao":"107055","valor_pedido":1461429.76,"receita_liquida":1162782.57,"valor_mc":56627.2,"mc_atual":0.0487,"valor_recomp":24767.57990000001,"mc_recomp":0.07,"status":"REINICIADA","coluna1":"","numped":"","valida":""},{"mes":"Maio/2026","fonte":"VERBA ANIBAL","ci":"661821","cliente":"10032250","data":"2026-05-22 00:00:00","negociacao":"107047/107287","valor_pedido":371700.0,"receita_liquida":313705.51,"valor_mc":14838.270623,"mc_atual":0.0473,"valor_recomp":7129.19,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Maio/2026","fonte":"VERBA ANIBAL","ci":"661974","cliente":"990949","data":"2026-05-26 00:00:00","negociacao":"107312","valor_pedido":691161.6,"receita_liquida":608222.21,"valor_mc":33513.043771,"mc_atual":0.0551,"valor_recomp":9068.35,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Maio/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8998074","data":"2026-05-27 00:00:00","negociacao":"107417","valor_pedido":1431628.8,"receita_liquida":1139080.5,"valor_mc":34172.415,"mc_atual":0.03,"valor_recomp":22781.61,"mc_recomp":0.05,"status":"REINICIADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8957007","data":"2026-06-08 00:00:00","negociacao":"110005","valor_pedido":100018.2,"receita_liquida":93016.93,"valor_mc":2439.2212537677697,"mc_atual":0.026223411735560073,"valor_recomp":4806.3542,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"10429701","data":"09/06/2026","negociacao":"109808","valor_pedido":424800.0,"receita_liquida":396608.22,"valor_mc":-3807.4389119999996,"mc_atual":-0.0096,"valor_recomp":23650.2426,"mc_recomp":0.05,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-09 00:00:00","negociacao":"109951","valor_pedido":122503.68,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0608,"valor_recomp":957.2191944773158,"mc_recomp":0.07,"status":"PEDIDO CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"949927","data":"2026-06-10 00:00:00","negociacao":"110272","valor_pedido":146265.0,"receita_liquida":136026.45,"valor_mc":5929.639002667389,"mc_atual":0.043591808818559834,"valor_recomp":4955.955799999999,"mc_recomp":0.08,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9248006","data":"2026-06-09 00:00:00","negociacao":"110195","valor_pedido":26940.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0176,"valor_recomp":993.3202824480043,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8177022","data":"2026-06-10 00:00:00","negociacao":"110203/110476","valor_pedido":347642.0,"receita_liquida":323307.06,"valor_mc":21726.234431999997,"mc_atual":0.0672,"valor_recomp":10591.0,"mc_recomp":0.1,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9248006","data":"2026-06-09 00:00:00","negociacao":"110185","valor_pedido":43324.8,"receita_liquida":37749.6,"valor_mc":2030.92848,"mc_atual":0.0538,"valor_recomp":234.04751999999962,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"9445745","data":"2026-06-11 00:00:00","negociacao":"110369","valor_pedido":1051344.0,"receita_liquida":887308.05,"valor_mc":46569.6,"mc_atual":0.0525,"valor_recomp":25356.056335106616,"mc_recomp":0.08,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"1958129","data":"2026-06-09 00:00:00","negociacao":"110167","valor_pedido":62400.0,"receita_liquida":37749.6,"valor_mc":468.09504,"mc_atual":0.0124,"valor_recomp":2174.37696,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8610740","data":"2026-06-11 00:00:00","negociacao":"110864","valor_pedido":1583064.0,"receita_liquida":1336066.44,"valor_mc":61191.842952,"mc_atual":0.0458,"valor_recomp":45806.34240000001,"mc_recomp":0.08,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"7647844","data":"2026-06-09 00:00:00","negociacao":"110244","valor_pedido":69696.0,"receita_liquida":60719.16,"valor_mc":2495.557476,"mc_atual":0.0411,"valor_recomp":1147.5921240000002,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"3741818","data":"2026-06-12 00:00:00","negociacao":"111111","valor_pedido":481920.0,"receita_liquida":424089.60000000003,"valor_mc":20144.256,"mc_atual":0.0475,"valor_recomp":13800.202671281659,"mc_recomp":0.08,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"7388229","data":"2026-06-09 00:00:00","negociacao":"110234","valor_pedido":27000.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0296,"valor_recomp":718.8456912000022,"mc_recomp":0.06,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"3293355","data":"2026-06-12 00:00:00","negociacao":"111118","valor_pedido":79444.0,"receita_liquida":70933.93,"valor_mc":3901.36615,"mc_atual":0.055,"valor_recomp":2484.11,"mc_recomp":0.09,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-10 00:00:00","negociacao":"109919","valor_pedido":234931.68,"receita_liquida":204722.76999999996,"valor_mc":2740.9924,"mc_atual":0.013388800864701081,"valor_recomp":9542.373799999998,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8610740","data":"2026-06-12 00:00:00","negociacao":"111162","valor_pedido":776601.0,"receita_liquida":330568.13,"valor_mc":30180.870269000003,"mc_atual":0.0913,"valor_recomp":5712.3,"mc_recomp":0.1,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-10 00:00:00","negociacao":"110410","valor_pedido":35395.2,"receita_liquida":30840.91,"valor_mc":752.5182040000001,"mc_atual":0.0244,"valor_recomp":1097.936396,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"7704160","data":"2026-06-12 00:00:00","negociacao":"110036","valor_pedido":158328.0,"receita_liquida":126354.53,"valor_mc":503.80450613890935,"mc_atual":0.0039872294736002685,"valor_recomp":5816.178,"mc_recomp":0.05,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8811977","data":"2026-06-10 00:00:00","negociacao":"110397","valor_pedido":125154.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0435,"valor_recomp":2914.0619180692565,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"3741818","data":"2026-06-12 00:00:00","negociacao":"110571 /111248","valor_pedido":454620.0,"receita_liquida":409062.72,"valor_mc":17998.75968,"mc_atual":0.044,"valor_recomp":14401.440000000002,"mc_recomp":0.08,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"1403716","data":"2026-06-10 00:00:00","negociacao":"110506","valor_pedido":109158.0,"receita_liquida":0,"valor_mc":0,"mc_atual":-0.0123,"valor_recomp":7328.408641242691,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8957007","data":"2026-06-16 00:00:00","negociacao":"111712","valor_pedido":1630489.1900000004,"receita_liquida":1380405.51,"valor_mc":73885.92258023453,"mc_atual":0.053524795464076735,"valor_recomp":36373.8103999999,"mc_recomp":0.08,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8811977","data":"2026-06-15 00:00:00","negociacao":"111419","valor_pedido":251940.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0424,"valor_recomp":3858.2121600480405,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"","data":"2026-06-17 00:00:00","negociacao":"111293/112712/113010/113762","valor_pedido":24586.2,"receita_liquida":19857.66,"valor_mc":309.24,"mc_atual":0.0156,"valor_recomp":1676.526,"mc_recomp":0.1,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8809729","data":"2026-06-15 00:00:00","negociacao":"111433","valor_pedido":45000.0,"receita_liquida":37996.92,"valor_mc":1421.084808,"mc_atual":0.0374,"valor_recomp":1238.699592,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"","data":"2026-06-18 00:00:00","negociacao":"112102","valor_pedido":48497.9,"receita_liquida":42403.96,"valor_mc":-5825.278843168451,"mc_atual":-0.137375821578184,"valor_recomp":8032.3665,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10526552","data":"2026-06-15 00:00:00","negociacao":"111303","valor_pedido":111303.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0304,"valor_recomp":7629.2232126006475,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"","data":"2026-06-18 00:00:00","negociacao":"112099","valor_pedido":47749.6,"receita_liquida":42181.93,"valor_mc":-3792.155507,"mc_atual":-0.0899,"valor_recomp":6097.74,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5835446","data":"2026-06-15 00:00:00","negociacao":"111494","valor_pedido":87600.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0407,"valor_recomp":1462.8889334400033,"mc_recomp":0.06,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"","data":"2026-06-18 00:00:00","negociacao":"112105","valor_pedido":26715.969999999998,"receita_liquida":23813.59,"valor_mc":-1093.7106242872883,"mc_atual":-0.04592800263577597,"valor_recomp":2473.5755,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-15 00:00:00","negociacao":"111440","valor_pedido":181411.2,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0202,"valor_recomp":6280.510217101819,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"","data":"2026-06-18 00:00:00","negociacao":"112109","valor_pedido":9743.2,"receita_liquida":6562.26,"valor_mc":-1215.3305520000001,"mc_atual":-0.1852,"valor_recomp":1985.54,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5869499","data":"2026-06-16 00:00:00","negociacao":"111468","valor_pedido":50864.0,"receita_liquida":44312.72,"valor_mc":1572.16,"mc_atual":0.035478751924955185,"valor_recomp":1086.6031999999998,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"10645079","data":"2026-06-19 00:00:00","negociacao":"112193","valor_pedido":161990.0,"receita_liquida":136715.51025,"valor_mc":7492.0099617,"mc_atual":0.0548,"valor_recomp":714.0945809138684,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8811977","data":"2026-06-16 00:00:00","negociacao":"111614","valor_pedido":597600.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0437,"valor_recomp":8511.386785920022,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"","data":"2026-06-22 00:00:00","negociacao":"112687","valor_pedido":1268785.3599999999,"receita_liquida":1185071.71,"valor_mc":41429.932943248416,"mc_atual":0.03495985314107989,"valor_recomp":51614.43730000002,"mc_recomp":0.08,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"4048408","data":"2026-06-17 00:00:00","negociacao":"111351","valor_pedido":47520.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0335,"valor_recomp":1070.2554867790602,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"9369061","data":"2026-06-24 00:00:00","negociacao":"113403","valor_pedido":1007385.6299999999,"receita_liquida":929108.7100000001,"valor_mc":52344.5255,"mc_atual":0.056338429439543196,"valor_recomp":21984.1713,"mc_recomp":0.08,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8959484","data":"2026-06-17 00:00:00","negociacao":"111733","valor_pedido":247500.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0398,"valor_recomp":6267.668434970496,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"10645079","data":"2026-06-26 00:00:00","negociacao":"113078","valor_pedido":163800.0,"receita_liquida":138243.1,"valor_mc":1370.0,"mc_atual":0.0043,"valor_recomp":4923.577300000001,"mc_recomp":0.04,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9596925","data":"2026-06-17 00:00:00","negociacao":"111877","valor_pedido":306768.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.049,"valor_recomp":2951.5368000000017,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8811977","data":"2026-06-17 00:00:00","negociacao":"111731","valor_pedido":103680.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0411,"valor_recomp":1696.3804701829627,"mc_recomp":0.06,"status":"CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9596925","data":"2026-06-17 00:00:00","negociacao":"111866","valor_pedido":258600.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0407,"valor_recomp":4325.091508819778,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9728381","data":"2026-06-17 00:00:00","negociacao":"111859","valor_pedido":62438.4,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0408,"valor_recomp":1057.3246194842786,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9048296","data":"2026-06-17 00:00:00","negociacao":"111930","valor_pedido":158928.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0438,"valor_recomp":2249.311366701142,"mc_recomp":0.06,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"3554432","data":"2026-06-17 00:00:00","negociacao":"111995","valor_pedido":122918.4,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0386,"valor_recomp":1836.74532652496,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10032250","data":"2026-06-17 00:00:00","negociacao":"112038","valor_pedido":316550.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0404,"valor_recomp":5396.753551678266,"mc_recomp":0.06,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10032250","data":"2026-06-17 00:00:00","negociacao":"112040","valor_pedido":116800.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0434,"valor_recomp":1691.670336908387,"mc_recomp":0.06,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8809729","data":"2026-06-17 00:00:00","negociacao":"112049","valor_pedido":49500.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0379,"valor_recomp":1341.7627000000002,"mc_recomp":0.07,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"","data":"2026-06-18 00:00:00","negociacao":"111948","valor_pedido":31080.0,"receita_liquida":26234.4,"valor_mc":-905.0868000000002,"mc_atual":-0.0345,"valor_recomp":2741.4948000000004,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"47568","data":"2026-06-19 00:00:00","negociacao":"112350","valor_pedido":58908.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0402,"valor_recomp":813.206301268169,"mc_recomp":0.06,"status":"CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-19 00:00:00","negociacao":"112163","valor_pedido":66000.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0379,"valor_recomp":1789.0174000000002,"mc_recomp":0.07,"status":"REINICIADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"7802971","data":"2026-06-19 00:00:00","negociacao":"112367","valor_pedido":292800.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0111,"valor_recomp":12468.22448372495,"mc_recomp":0.06,"status":"CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9981329","data":"2026-06-19 00:00:00","negociacao":"112368","valor_pedido":297291.0,"receita_liquida":0,"valor_mc":0,"mc_atual":-0.0038,"valor_recomp":18868.761956379378,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"1254061","data":"2026-06-22 00:00:00","negociacao":"112602","valor_pedido":50040.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0382,"valor_recomp":842.9705332201679,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10526552","data":"2026-06-22 00:00:00","negociacao":"112729","valor_pedido":230815.2,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0417,"valor_recomp":5504.958200000002,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5938556","data":"2026-06-22 00:00:00","negociacao":"112669","valor_pedido":31996.8,"receita_liquida":27026.74,"valor_mc":18.918718000000002,"mc_atual":0.0007,"valor_recomp":1872.9530820000004,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5938556","data":"2026-06-22 00:00:00","negociacao":"112588","valor_pedido":33000.0,"receita_liquida":0,"valor_mc":0,"mc_atual":-0.0049,"valor_recomp":2010.4346,"mc_recomp":0.07,"status":"CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9518082","data":"2026-06-22 00:00:00","negociacao":"112596","valor_pedido":294630.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0111,"valor_recomp":12551.1996,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"1254061","data":"2026-06-22 00:00:00","negociacao":"112717","valor_pedido":49800.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0337,"valor_recomp":1008.8688000000002,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9811113","data":"2026-06-22 00:00:00","negociacao":"112887","valor_pedido":359856.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0251,"valor_recomp":9595.6629,"mc_recomp":0.07,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-22 00:00:00","negociacao":"112953","valor_pedido":186912.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0389,"valor_recomp":3434.2638000000006,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"","data":"2026-06-22 00:00:00","negociacao":"112385","valor_pedido":26742.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.031,"valor_recomp":538.9451999999999,"mc_recomp":0.06,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8959484","data":"2026-06-23 00:00:00","negociacao":"112979","valor_pedido":767206.8,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0234,"valor_recomp":24440.880716625303,"mc_recomp":0.06,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-23 00:00:00","negociacao":"112980","valor_pedido":209139.84,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0416,"valor_recomp":5017.376,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9507452","data":"2026-06-23 00:00:00","negociacao":"112989","valor_pedido":669312.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0437,"valor_recomp":9504.036599999996,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8809731","data":"2026-06-23 00:00:00","negociacao":"113145","valor_pedido":93526.8,"receita_liquida":0,"valor_mc":0,"mc_atual":0.02,"valor_recomp":4054.8367000000007,"mc_recomp":0.07,"status":"EXPIRADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9687419","data":"2026-06-24 00:00:00","negociacao":"113222","valor_pedido":116856.0,"receita_liquida":0,"valor_mc":0,"mc_atual":-0.011,"valor_recomp":7922.0674,"mc_recomp":0.07,"status":"REINICIADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9518082","data":"2026-06-24 00:00:00","negociacao":"113255","valor_pedido":188844.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0248,"valor_recomp":7374.9552,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"7802971","data":"2026-06-24 00:00:00","negociacao":"113257","valor_pedido":188844.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0351,"valor_recomp":5694.9552,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8114029","data":"2026-06-24 00:00:00","negociacao":"113265","valor_pedido":184800.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0497,"valor_recomp":3090.204600000001,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"7647844","data":"2026-06-24 00:00:00","negociacao":"113318","valor_pedido":46800.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0215,"valor_recomp":1567.9296,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"","data":"2026-06-24 00:00:00","negociacao":"113319","valor_pedido":15836.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0275,"valor_recomp":543.3238000000001,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-24 00:00:00","negociacao":"113374","valor_pedido":45932.04,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0101,"valor_recomp":1997.0393999999997,"mc_recomp":0.06,"status":"CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8811977","data":"2026-06-24 00:00:00","negociacao":"113408","valor_pedido":101390.4,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0305,"valor_recomp":2607.0792,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"2423076","data":"2026-06-24 00:00:00","negociacao":"113393","valor_pedido":229152.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0248,"valor_recomp":8733.0992,"mc_recomp":0.07,"status":"CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10032250","data":"2026-06-24 00:00:00","negociacao":"113401","valor_pedido":259600.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.014,"valor_recomp":10401.811199999998,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10032250","data":"2026-06-24 00:00:00","negociacao":"113402","valor_pedido":366000.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0292,"valor_recomp":9831.552,"mc_recomp":0.06,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8177022","data":"2026-06-24 00:00:00","negociacao":"113367","valor_pedido":362208.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0184,"valor_recomp":15780.695000000002,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"7802971","data":"2026-06-24 00:00:00","negociacao":"113397","valor_pedido":416640.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0344,"valor_recomp":12518.361800000002,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5967430","data":"2026-06-24 00:00:00","negociacao":"113372","valor_pedido":603890.9800000001,"receita_liquida":522415.29999999993,"valor_mc":19851.781399999996,"mc_atual":0.038,"valor_recomp":16717.2896,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8811977","data":"2026-06-24 00:00:00","negociacao":"113412","valor_pedido":122094.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0624,"valor_recomp":787.0996000000005,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10645079","data":"2026-06-25 00:00:00","negociacao":"113456","valor_pedido":282492.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.014,"valor_recomp":11319.0618,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"1205171","data":"2026-06-25 00:00:00","negociacao":"113495","valor_pedido":12480.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0051,"valor_recomp":596.6748,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9840058","data":"2026-06-25 00:00:00","negociacao":"113478","valor_pedido":89640.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0207,"valor_recomp":3758.4,"mc_recomp":0.06,"status":"CANCELADO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"4872927","data":"2026-06-25 00:00:00","negociacao":"113485","valor_pedido":18720.0,"receita_liquida":16308.86,"valor_mc":415.87593,"mc_atual":0.0255,"valor_recomp":562.6556700000001,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"6068506","data":"2026-06-25 00:00:00","negociacao":"113487","valor_pedido":22379.7,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0499,"valor_recomp":195.9713999999998,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9371764","data":"2026-06-25 00:00:00","negociacao":"113572","valor_pedido":39840.0,"receita_liquida":34708.61,"valor_mc":805.239752,"mc_atual":0.0232,"valor_recomp":1277.276848,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"6985609","data":"2026-06-25 00:00:00","negociacao":"113530","valor_pedido":16932.0,"receita_liquida":14751.16,"valor_mc":429.258756,"mc_atual":0.0291,"valor_recomp":455.8108439999999,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8959484","data":"2026-06-25 00:00:00","negociacao":"113518","valor_pedido":254836.8,"receita_liquida":222055.34,"valor_mc":52427.265774,"mc_atual":0.2361,"valor_recomp":0.0,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9048296","data":"2026-06-25 00:00:00","negociacao":"113415","valor_pedido":439200.0,"receita_liquida":382630.99999999994,"valor_mc":-37842.20589999999,"mc_atual":-0.0989,"valor_recomp":45494.825899999996,"mc_recomp":0.02,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"696738","data":"2026-06-26 00:00:00","negociacao":"113696","valor_pedido":16740.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0026,"valor_recomp":926.9165000000002,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8809729","data":"2026-06-26 00:00:00","negociacao":"113606","valor_pedido":115407.6,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0417,"valor_recomp":2752.479100000001,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8809729","data":"2026-06-26 00:00:00","negociacao":"113723","valor_pedido":114576.0,"receita_liquida":96773.3,"valor_mc":2874.16701,"mc_atual":0.0297,"valor_recomp":3899.963990000001,"mc_recomp":0.07,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"9811113","data":"2026-06-26 00:00:00","negociacao":"113692","valor_pedido":294000.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0285,"valor_recomp":10289.005500000003,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"4583079","data":"2026-06-26 00:00:00","negociacao":"113700","valor_pedido":74700.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0372,"valor_recomp":1315.3026,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"8811977","data":"2026-06-26 00:00:00","negociacao":"113827","valor_pedido":347375.2,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0217,"valor_recomp":14151.118600000002,"mc_recomp":0.07,"status":"REPROVADA","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5835446","data":"2026-06-26 00:00:00","negociacao":"113745","valor_pedido":539700.0,"receita_liquida":462890.2999999999,"valor_mc":35225.95182999999,"mc_atual":0.0761,"valor_recomp":0.0,"mc_recomp":0.06,"status":"OK","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"1734546","data":"2026-06-26 00:00:00","negociacao":"113824","valor_pedido":42736.32,"receita_liquida":0,"valor_mc":0,"mc_atual":0.022,"valor_recomp":1732.7873000000004,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5938556","data":"2026-06-26 00:00:00","negociacao":"113907","valor_pedido":146119.2,"receita_liquida":0,"valor_mc":0,"mc_atual":0.023,"valor_recomp":5961.914100000001,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"4378810","data":"2026-06-26 00:00:00","negociacao":"113968","valor_pedido":26679.84,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0318,"valor_recomp":877.6946,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"4583079","data":"2026-06-29 00:00:00","negociacao":"113700","valor_pedido":80982.0,"receita_liquida":62467.49,"valor_mc":1476.0,"mc_atual":0.0236,"valor_recomp":3748.0494,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10645079","data":"2026-06-29 00:00:00","negociacao":"114074","valor_pedido":85071.0,"receita_liquida":74113.86,"valor_mc":4102.2,"mc_atual":0.0553,"valor_recomp":344.6315999999997,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"972336","data":"2026-06-29 00:00:00","negociacao":"114018","valor_pedido":51588.0,"receita_liquida":44943.47,"valor_mc":996.0,"mc_atual":0.0222,"valor_recomp":1700.6082000000001,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"10142025","data":"2026-06-29 00:00:00","negociacao":"113994","valor_pedido":10506.0,"receita_liquida":8866.8,"valor_mc":299.76,"mc_atual":0.0338,"valor_recomp":320.91600000000005,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"7535038","data":"2026-06-29 00:00:00","negociacao":"113981","valor_pedido":231000.0,"receita_liquida":194958.22,"valor_mc":4065.6,"mc_atual":0.0209,"valor_recomp":9581.475400000001,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5938556","data":"2026-06-29 00:00:00","negociacao":"113907","valor_pedido":150533.1,"receita_liquida":126201.86,"valor_mc":-4341.6,"mc_atual":-0.0344,"valor_recomp":13175.730200000002,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5316674","data":"2026-06-29 00:00:00","negociacao":"114040","valor_pedido":53700.6,"receita_liquida":46134.97,"valor_mc":1456.2,"mc_atual":0.0316,"valor_recomp":1773.2479000000005,"mc_recomp":0.07,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"DIAGEO","ci":"","cliente":"5835446","data":"2026-06-29 00:00:00","negociacao":"113992","valor_pedido":84000.0,"receita_liquida":73180.8,"valor_mc":1692.0,"mc_atual":0.0231,"valor_recomp":2698.848,"mc_recomp":0.06,"status":"EM PROCESSO","coluna1":"","numped":"","valida":""},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8957007","data":"2026-06-11 00:00:00","negociacao":"110005","valor_pedido":100018.2,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0338,"valor_recomp":3325.2230904990897,"mc_recomp":0.07,"status":"Expirado","coluna1":"Monitorar","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"10429701","data":"","negociacao":"109808","valor_pedido":424800.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0095,"valor_recomp":10326.02,"mc_recomp":0.05,"status":"Finalizada","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"949927","data":"","negociacao":"110272","valor_pedido":146265.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.04,"valor_recomp":5511.632835954484,"mc_recomp":0.08,"status":"Finalizada","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8177022","data":"","negociacao":"110476","valor_pedido":347642.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0651,"valor_recomp":11293.143514888401,"mc_recomp":0.1,"status":"Finalizada","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"9445745","data":"11/06/2026","negociacao":"110369","valor_pedido":1051344.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0525,"valor_recomp":25356.056335106616,"mc_recomp":0.08,"status":"Expirado","coluna1":"","numped":"","valida":"Não passou"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8610740","data":"","negociacao":"110864","valor_pedido":1583064.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0514,"valor_recomp":38225.389706888236,"mc_recomp":0.08,"status":"Finalizada","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"3741818","data":"11/06/2026","negociacao":"111111","valor_pedido":481920.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0475,"valor_recomp":13800.202671281659,"mc_recomp":0.08,"status":"Reprovada","coluna1":"","numped":"","valida":"Reprovada"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"3293355","data":"2026-06-12 00:00:00","negociacao":"111118","valor_pedido":79444.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.055,"valor_recomp":2484.11,"mc_recomp":0.09,"status":"Reprovada","coluna1":"","numped":"","valida":"Reprovada"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8610740","data":"2026-06-12 00:00:00","negociacao":"111162","valor_pedido":391680.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0737,"valor_recomp":8700.478754368047,"mc_recomp":0.1,"status":"Em Aprovação Diretor Pricing","coluna1":"ok","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"7704160","data":"2026-06-12 00:00:00","negociacao":"110036","valor_pedido":158328.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0111,"valor_recomp":4902.002362997902,"mc_recomp":0.05,"status":"Expirado","coluna1":"","numped":"","valida":"ok"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"3741818","data":"12/06/2026","negociacao":"111248","valor_pedido":464844.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0327,"valor_recomp":19334.88,"mc_recomp":0.08,"status":"Em Aprovação Diretor Pricing","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"5967430","data":"","negociacao":"109951","valor_pedido":122503.68,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0608,"valor_recomp":957.2191944773158,"mc_recomp":0.07,"status":"Finalizada","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"9248006","data":"","negociacao":"110195","valor_pedido":26940.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0176,"valor_recomp":993.3202824480043,"mc_recomp":0.06,"status":"Reprovada","coluna1":"VAMOS FECHAR OUTRA NEGOCIAÇÃO COM O VALOR MAIOR","numped":"","valida":"Reprovada"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"9248006","data":"","negociacao":"110185","valor_pedido":43324.8,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0532,"valor_recomp":255.11420510264247,"mc_recomp":0.06,"status":"Finalizada","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"1958129","data":"","negociacao":"110167","valor_pedido":62400.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0137,"valor_recomp":2968.978837309558,"mc_recomp":0.07,"status":"Finalizada","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"7647844","data":"","negociacao":"110244","valor_pedido":69696.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0407,"valor_recomp":1169.6103378432122,"mc_recomp":0.06,"status":"Finalizada","coluna1":"ok","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"7388229","data":"2026-06-09 00:00:00","negociacao":"110234","valor_pedido":27000.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0296,"valor_recomp":718.8456912000022,"mc_recomp":0.06,"status":"Expirado","coluna1":"","numped":"","valida":"Expirado"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"5967430","data":"","negociacao":"109919","valor_pedido":221707.2,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0216,"valor_recomp":7396.59563762984,"mc_recomp":0.06,"status":"Finalizada com Divergências","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"5967430","data":"","negociacao":"110410","valor_pedido":29287.8,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0468,"valor_recomp":337.9954788816415,"mc_recomp":0.06,"status":"Finalizada com Divergências","coluna1":"","numped":"","valida":"OK"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"8811977","data":"2026-06-10 00:00:00","negociacao":"110397","valor_pedido":125154.0,"receita_liquida":0,"valor_mc":0,"mc_atual":0.0435,"valor_recomp":2914.0619180692565,"mc_recomp":0.07,"status":"Reprovada","coluna1":"REJEITADA","numped":"","valida":"Reprovada"},{"mes":"Junho/2026","fonte":"VERBA ANIBAL","ci":"","cliente":"1403716","data":"2026-06-10 00:00:00","negociacao":"110506","valor_pedido":109158.0,"receita_liquida":0,"valor_mc":0,"mc_atual":-0.0123,"valor_recomp":7328.408641242691,"mc_recomp":0.07,"status":"Reprovada","coluna1":"ok","numped":"","valida":"Reprovada"}],"verbas":[{"nome":"Verba OMO - Março","total":100000,"gasto":44816.99,"mes":"Março/2026","fornecedor":"OMO"},{"nome":"Verba ANIBAL - Março","total":0,"gasto":36817.72,"mes":"Março/2026","fornecedor":"ANIBAL"},{"nome":"Verba ANIBAL - Maio","total":0,"gasto":16197.54,"mes":"Maio/2026","fornecedor":"ANIBAL"},{"nome":"Verba ANIBAL - Junho","total":0,"gasto":158056.82,"mes":"Junho/2026","fornecedor":"ANIBAL"},{"nome":"Verba DIAGEO - Junho","total":200000,"gasto":114489.58,"mes":"Junho/2026","fornecedor":"DIAGEO"}]};
+
+let RD = JSON.parse(JSON.stringify(BASE));
+let FD = [];
+let curPg=1, PS=15, sCol=-1, sAsc=true, tQ='';
+let chts={}, sbOpen=true, bc=null, activeTab='overview';
+let impRows=[], impCols=[];
+
+// ===== HELPERS =====
+const R = v => 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const P = v => (v*100).toFixed(1)+'%';
+const r2 = v => Math.round(v*100)/100;
+const pN = (a,b) => b?((a/b)*100).toFixed(1)+'%':'0%';
+const avg = arr => arr.length?arr.reduce(function(s,v){return s+v;},0)/arr.length:0;
+function normF(f){return (f||'').indexOf('VERBA ANIBAL')>=0?'VERBA ANIBAL':(f||'');}
+
+function nSt(s){
+  if(!s)return 'OUTROS';
+  var u=s.toUpperCase().trim();
+  if(u==='OK'||u==='MC OK'||u.indexOf('FINALIZ')>=0)return 'OK';
+  if(u==='EM PROCESSO'||u.indexOf('APROVA')>=0)return 'EM PROCESSO';
+  if(u.indexOf('CANCEL')>=0||u.indexOf('NAO FECHOU')>=0||u.indexOf('NÃO FECHOU')>=0)return 'CANCELADO';
+  if(u.indexOf('REPROV')>=0)return 'REPROVADA';
+  if(u.indexOf('EXPIR')>=0)return 'EXPIRADO';
+  if(u.indexOf('REINIC')>=0||u.indexOf('SUBSTIT')>=0||u.indexOf('SUBIST')>=0)return 'REINICIADA/SUBST.';
+  return 'OUTROS';
+}
+function isEf(s){var u=(s||'').toUpperCase().trim();return u==='OK'||u==='MC OK'||u.indexOf('FINALIZ')>=0;}
+function isEx(s){return ['REPROVADA','EXPIRADO','REINICIADA/SUBST.','OUTROS','CANCELADO'].indexOf(nSt(s))>=0;}
+function sCls(s){var n=nSt(s);if(n==='OK')return 's-ok';if(n==='EM PROCESSO')return 's-pd';if(n==='CANCELADO'||n==='REPROVADA')return 's-cn';return 's-ot';}
+function sClr(s){var n=nSt(s);if(n==='OK')return '#22c55e';if(n==='EM PROCESSO')return '#f59e0b';if(n==='CANCELADO')return '#ef4444';if(n==='REPROVADA')return '#f97316';if(n==='EXPIRADO')return '#94a3b8';return '#6366f1';}
+
+// ===== CHARTS =====
+function dC(id){if(chts[id]){try{chts[id].destroy();}catch(e){}delete chts[id];}}
+function mC(id,cfg){
+  dC(id);
+  var el=document.getElementById(id);if(!el)return null;
+  try{chts[id]=new Chart(el,cfg);return chts[id];}catch(e){return null;}
+}
+var CD={plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{backgroundColor:'#1a1d27',titleColor:'#e2e8f0',bodyColor:'#94a3b8',borderColor:'#2e3350',borderWidth:1}},scales:{x:{ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(46,51,80,.4)'}},y:{ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(46,51,80,.4)'}}},responsive:true,maintainAspectRatio:false};
+function cO(e){
+  function m(a,b){var r=Object.assign({},a);for(var k in b){if(b[k]&&typeof b[k]==='object'&&!Array.isArray(b[k]))r[k]=m(a[k]||{},b[k]);else r[k]=b[k];}return r;}
+  return m(CD,e||{});
+}
+
+// ===== SYNC =====
+function initSync(){
+  try{var s=localStorage.getItem(SK);if(s){var d=JSON.parse(s);if(d&&d.records&&d.records.length>0)RD=d;}}catch(e){}
+  try{
+    bc=new BroadcastChannel('recomp_'+SK);
+    bc.onmessage=function(e){
+      if(e.data&&e.data.t==='upd'){
+        RD=e.data.d;
+        buildF();applyF();
+        toast('🔄 Dashboard atualizado por outro usuário');
+      }
+    };
+  }catch(e){}
+  setInterval(function(){
+    try{
+      var s=localStorage.getItem(SK);
+      if(s){var d=JSON.parse(s);if(d&&d._ts&&RD._ts&&d._ts!==RD._ts){RD=d;buildF();applyF();toast('🔄 Dados atualizados');}}
+    }catch(e){}
+  },3000);
+}
+
+function saveData(){
+  try{
+    RD._ts=Date.now();
+    localStorage.setItem(SK,JSON.stringify(RD));
+    if(bc)bc.postMessage({t:'upd',d:RD});
+    toast('✅ Salvo e sincronizado');
+  }catch(e){console.warn(e);}
+}
+
+var toastTO=null;
+function toast(msg){
+  var el=document.getElementById('sync-toast');
+  document.getElementById('sync-msg').textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTO);
+  toastTO=setTimeout(function(){el.classList.remove('show');},2800);
+}
+
+// ===== SIDEBAR =====
+function toggleSB(){
+  sbOpen=!sbOpen;
+  document.getElementById('sb').classList.toggle('closed',!sbOpen);
+  document.getElementById('sb-lbl').textContent=sbOpen?'◀ Recolher':'▶';
+}
+
+// ===== FILTERS =====
+function buildF(){
+  var meses=Array.from(new Set(RD.records.map(function(r){return r.mes;}))).sort();
+  var fontes=Array.from(new Set(RD.records.map(function(r){return normF(r.fonte);}))).sort();
+  var statuses=Array.from(new Set(RD.records.map(function(r){return nSt(r.status);}))).sort();
+  var cis=Array.from(new Set(RD.records.map(function(r){return r.ci;}).filter(Boolean))).sort();
+  var mClr={'Março/2026':'#4f8ef7','Maio/2026':'#22c55e','Junho/2026':'#a855f7','Julho/2026':'#f59e0b'};
+  var sClrMap={'OK':'#22c55e','EM PROCESSO':'#f59e0b','CANCELADO':'#ef4444','REPROVADA':'#f97316','EXPIRADO':'#94a3b8','REINICIADA/SUBST.':'#06b6d4','OUTROS':'#6366f1'};
+  function mk(id,items,g,cf){
+    var el=document.getElementById(id);if(!el)return;
+    el.innerHTML=items.map(function(v){
+      var col=cf?cf(v):null;
+      var dot=col?'<div class="sdot" style="background:'+col+'"></div>':'';
+      return '<label class="chk-i"><input type="checkbox" checked value="'+v+'" data-g="'+g+'" onchange="applyF()">'+dot+'<span>'+v+'</span></label>';
+    }).join('');
+  }
+  mk('f-mes',meses,'mes',function(m){return mClr[m]||'#4f8ef7';});
+  mk('f-fonte',fontes,'fonte',null);
+  mk('f-status',statuses,'status',function(s){return sClrMap[s]||'#64748b';});
+  var ci=document.getElementById('f-ci');
+  if(ci)ci.innerHTML='<option value="">Todos</option>'+cis.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+}
+
+function applyF(){
+  var srch=(document.getElementById('f-s').value||'').toLowerCase();
+  var selM=Array.from(document.querySelectorAll('[data-g="mes"]:checked')).map(function(e){return e.value;});
+  var selF=Array.from(document.querySelectorAll('[data-g="fonte"]:checked')).map(function(e){return e.value;});
+  var selS=Array.from(document.querySelectorAll('[data-g="status"]:checked')).map(function(e){return e.value;});
+  var selCI=document.getElementById('f-ci').value;
+  var vp1=parseFloat(document.getElementById('f-vp1').value)||0;
+  var vp2=parseFloat(document.getElementById('f-vp2').value)||Infinity;
+  var vr1=parseFloat(document.getElementById('f-vr1').value)||0;
+  var vr2=parseFloat(document.getElementById('f-vr2').value)||Infinity;
+  FD=RD.records.filter(function(r){
+    if(selM.indexOf(r.mes)<0)return false;
+    if(selF.indexOf(normF(r.fonte))<0)return false;
+    if(selS.indexOf(nSt(r.status))<0)return false;
+    if(selCI&&r.ci!==selCI)return false;
+    if(r.valor_pedido<vp1||r.valor_pedido>vp2)return false;
+    if(r.valor_recomp<vr1||r.valor_recomp>vr2)return false;
+    if(srch){var h=(r.negociacao+r.cliente+r.ci+r.status+r.mes+r.fonte+r.numped+r.valida).toLowerCase();if(h.indexOf(srch)<0)return false;}
+    return true;
+  });
+  curPg=1;
+  updAll();
+}
+
+function resetF(){
+  document.getElementById('f-s').value='';
+  document.querySelectorAll('[data-g]').forEach(function(e){e.checked=true;});
+  document.getElementById('f-ci').value='';
+  ['f-vp1','f-vp2','f-vr1','f-vr2'].forEach(function(id){document.getElementById(id).value='';});
+  applyF();
+}
+
+// ===== TAB =====
+function goTab(id,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('t-'+id).classList.add('active');
+  activeTab=id;
+  requestAnimationFrame(function(){requestAnimationFrame(function(){renderTab(id);});});
+}
+
+function renderTab(id){
+  if(id==='overview')updOverview();
+  else if(id==='clientes')updCliCharts();
+  else if(id==='negociacoes')updNegCharts();
+  else if(id==='margem'){updMargemCards();updMargemCharts();}
+  else if(id==='verba')updVerba();
+}
+
+// ===== EFETIVO CARD =====
+function updEf(){
+  var tot=FD.reduce(function(s,r){return s+r.valor_recomp;},0);
+  var ef=FD.filter(function(r){return isEf(r.status);});
+  var totEf=ef.reduce(function(s,r){return s+r.valor_recomp;},0);
+  var pEf=tot?(totEf/tot*100).toFixed(1):'0.0';
+  document.getElementById('cef-wrap').innerHTML=
+    '<div class="cef"><div class="cef-i">✅</div><div class="cef-b">'+
+    '<div class="cef-l">Valor Efetivamente Recomposto (OK + MC OK + Finalizado)</div>'+
+    '<div class="cef-v">'+R(totEf)+'</div>'+
+    '<div class="cef-s">'+ef.length+' negociações concluídas · Pendente: '+R(tot-totEf)+'</div>'+
+    '<div class="cef-bd">✔ CONFIRMADO</div></div>'+
+    '<div class="cef-r"><div class="cef-p">'+pEf+'%</div><div style="font-size:10px;color:#86efac">do total recomposto</div>'+
+    '<div style="margin-top:9px"><div style="background:rgba(0,0,0,.25);border-radius:5px;height:9px;width:120px;overflow:hidden;margin-left:auto">'+
+    '<div style="height:100%;width:'+Math.min(100,parseFloat(pEf))+'%;background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:5px"></div></div></div></div></div>';
+}
+
+// ===== KPI CARDS =====
+function updCards(){
+  var d=FD;
+  var tP=d.reduce(function(s,r){return s+r.valor_pedido;},0);
+  var tR=d.reduce(function(s,r){return s+r.valor_recomp;},0);
+  var tRL=d.reduce(function(s,r){return s+(r.receita_liquida||0);},0);
+  var tVMC=d.reduce(function(s,r){return s+(r.valor_mc||0);},0);
+  var mcA=d.filter(function(r){return r.mc_atual!==0;}).map(function(r){return r.mc_atual;});
+  var mcR=d.filter(function(r){return r.mc_recomp!==0;}).map(function(r){return r.mc_recomp;});
+  var dRec=d.filter(function(r){return r.valor_recomp>0;}),nR=dRec.length||1;
+  var tik=dRec.reduce(function(s,r){return s+r.valor_recomp;},0)/nR;
+  var cli=new Set(d.map(function(r){return r.cliente;}).filter(Boolean)).size;
+  var qOK=d.filter(function(r){return nSt(r.status)==='OK';}).length;
+  var qPd=d.filter(function(r){return nSt(r.status)==='EM PROCESSO';}).length;
+  var qCn=d.filter(function(r){return nSt(r.status)==='CANCELADO'||nSt(r.status)==='REPROVADA';}).length;
+  var cards=[
+    {i:'💰',l:'Valor Total dos Pedidos',v:R(tP),s:d.length+' negociações',c:'blue'},
+    {i:'📊',l:'Receita Líquida Total',v:R(tRL),s:'Receita líquida consolidada',c:'cyn'},
+    {i:'📉',l:'Valor MC Total',v:R(tVMC),s:'Margem de contribuição total',c:'yel'},
+    {i:'🎯',l:'Valor Total Recomposto',v:R(tR),s:'Ticket médio: '+R(tik),c:'grn'},
+    {i:'📋',l:'Negociações',v:d.length.toLocaleString('pt-BR'),s:cli+' clientes',c:'blue'},
+    {i:'📉',l:'MC Média Atual',v:P(avg(mcA)),s:'Margem atual',c:'yel'},
+    {i:'📈',l:'MC Média Recomposição',v:P(avg(mcR)),s:'Meta recomposição',c:'grn'},
+    {i:'🏦',l:'Saldo (OMO+DIAGEO)',v:R(600000-289993.69),s:'De '+R(600000)+' total',c:'pur'},
+    {i:'⚡',l:'Verba Utilizada',v:(289993.69/600000*100).toFixed(1)+'%',s:R(289993.69)+' consumidos',c:'yel'},
+    {i:'✅',l:'Negociações OK',v:qOK.toLocaleString('pt-BR'),s:pN(qOK,d.length)+' do total',c:'grn',b:'OK',bc:'bok'},
+    {i:'⏳',l:'Em Processo',v:qPd.toLocaleString('pt-BR'),s:pN(qPd,d.length)+' do total',c:'yel',b:'PEND.',bc:'bpd'},
+    {i:'❌',l:'Reprovadas/Canceladas',v:qCn.toLocaleString('pt-BR'),s:pN(qCn,d.length)+' do total',c:'red',b:'CANC.',bc:'bcn'}
+  ];
+  document.getElementById('kpi').innerHTML=cards.map(function(c){
+    return '<div class="card '+c.c+'"><div class="c-i">'+c.i+'</div><div class="c-l">'+c.l+'</div><div class="c-v">'+c.v+'</div><div class="c-s">'+c.s+'</div>'+(c.b?'<div class="c-bd '+c.bc+'">'+c.b+'</div>':'')+'</div>';
+  }).join('');
+}
+
+// ===== OVERVIEW =====
+function updOverview(){
+  updEf();updCards();renderT();
+  var allM=Array.from(new Set(RD.records.map(function(r){return r.mes;}))).sort();
+  var val=FD.filter(function(r){return !isEx(r.status);});
+  // Evolução
+  var byM={};allM.forEach(function(m){byM[m]=0;});
+  val.forEach(function(r){byM[r.mes]=(byM[r.mes]||0)+r.valor_recomp;});
+  var c4=['rgba(79,142,247,.8)','rgba(34,197,94,.8)','rgba(168,85,247,.8)','rgba(245,158,11,.8)'];
+  mC('c-evol',{type:'bar',data:{labels:allM,datasets:[{data:allM.map(function(m){return r2(byM[m]);}),backgroundColor:allM.map(function(_,i){return c4[i%4];}),borderColor:allM.map(function(_,i){return c4[i%4].replace('.8','1');}),borderWidth:2,borderRadius:6,label:'R$'}]},options:cO({plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return 'R$ '+Number(v).toLocaleString('pt-BR',{notation:'compact'});}}}}})}); 
+  // Status
+  var cnt={};FD.forEach(function(r){var n=nSt(r.status);cnt[n]=(cnt[n]||0)+1;});
+  if(!Object.keys(cnt).length)cnt['Sem dados']=1;
+  var sl=Object.keys(cnt),sc=sl.map(function(l){return sClr(l);});
+  mC('c-status',{type:'doughnut',data:{labels:sl,datasets:[{data:sl.map(function(l){return cnt[l];}),backgroundColor:sc.map(function(c){return c+'cc';}),borderColor:sc,borderWidth:2,hoverOffset:8}]},options:cO({plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:11},padding:10}}},cutout:'65%',scales:{x:{display:false},y:{display:false}}})});
+  // MC por mês
+  var bMC={};allM.forEach(function(m){bMC[m]={a:[],r:[]};});
+  val.forEach(function(r){if(!bMC[r.mes])bMC[r.mes]={a:[],r:[]};if(r.mc_atual!==0)bMC[r.mes].a.push(r.mc_atual);if(r.mc_recomp!==0)bMC[r.mes].r.push(r.mc_recomp);});
+  mC('c-mc',{type:'bar',data:{labels:allM,datasets:[{label:'MC Atual (Média)',data:allM.map(function(m){return r2(avg(bMC[m].a)*100);}),backgroundColor:'rgba(239,68,68,.65)',borderColor:'#ef4444',borderWidth:2,borderRadius:5},{label:'MC Recomp. (Média)',data:allM.map(function(m){return r2(avg(bMC[m].r)*100);}),backgroundColor:'rgba(34,197,94,.65)',borderColor:'#22c55e',borderWidth:2,borderRadius:5}]},options:cO({scales:{y:{ticks:{callback:function(v){return v+'%';}}}}})}); 
+  // Fonte
+  var bF={};val.forEach(function(r){var f=normF(r.fonte);bF[f]=(bF[f]||0)+r.valor_recomp;});
+  if(!Object.keys(bF).length)bF['Sem dados']=1;
+  var fn=Object.keys(bF);
+  var fC={'VERBA ANIBAL':'rgba(79,142,247,.85)','OMO':'rgba(6,182,212,.85)','DIAGEO':'rgba(168,85,247,.85)'};
+  var fbc=fn.map(function(f){return fC[f]||'rgba(100,116,139,.85)';});
+  mC('c-fonte',{type:'pie',data:{labels:fn,datasets:[{data:fn.map(function(f){return r2(bF[f]);}),backgroundColor:fbc,borderColor:fbc.map(function(c){return c.replace('.85','1');}),borderWidth:2,hoverOffset:8}]},options:cO({plugins:{legend:{position:'bottom'}},scales:{x:{display:false},y:{display:false}}})});
+}
+
+// ===== CLIENTES =====
+function updCliCharts(){
+  var bC={};FD.forEach(function(r){if(r.cliente)bC[r.cliente]=(bC[r.cliente]||0)+r.valor_recomp;});
+  var t10=Object.entries(bC).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  if(!t10.length){dC('c-tcli');dC('c-tverba');return;}
+  mC('c-tcli',{type:'bar',data:{labels:t10.map(function(e){return e[0];}),datasets:[{label:'Valor',data:t10.map(function(e){return r2(e[1]);}),backgroundColor:'rgba(79,142,247,.75)',borderColor:'#4f8ef7',borderWidth:2,borderRadius:6}]},options:cO({indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return 'R$ '+Number(v).toLocaleString('pt-BR',{notation:'compact'});}}},y:{ticks:{font:{size:10}}}}})});
+  mC('c-tverba',{type:'bar',data:{labels:t10.map(function(e){return e[0];}),datasets:[{label:'Verba',data:t10.map(function(e){return r2(e[1]);}),backgroundColor:'rgba(168,85,247,.75)',borderColor:'#a855f7',borderWidth:2,borderRadius:6}]},options:cO({indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return 'R$ '+Number(v).toLocaleString('pt-BR',{notation:'compact'});}}},y:{ticks:{font:{size:10}}}}})});
+  var rc=document.getElementById('rank-cli');
+  if(rc)rc.innerHTML=t10.map(function(e,i){var cl=i<3?['rn1','rn2','rn3'][i]:'rnn';return '<div class="ri"><div class="rnum '+cl+'">'+(i+1)+'</div><div class="ri-info"><div class="ri-nm">'+e[0]+'</div><div class="ri-dt">Cliente</div></div><div class="ri-val">'+R(e[1])+'</div></div>';}).join('');
+}
+
+// ===== NEGOCIAÇÕES =====
+function updNegCharts(){
+  var sorted=FD.slice().sort(function(a,b){return b.valor_recomp-a.valor_recomp;}).slice(0,10);
+  if(sorted.length)mC('c-tnegs',{type:'bar',data:{labels:sorted.map(function(r){return r.negociacao;}),datasets:[{data:sorted.map(function(r){return r2(r.valor_recomp);}),backgroundColor:sorted.map(function(r){return sClr(r.status)+'cc';}),borderColor:sorted.map(function(r){return sClr(r.status);}),borderWidth:2,borderRadius:6,label:'R$'}]},options:cO({indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:function(v){return 'R$ '+Number(v).toLocaleString('pt-BR',{notation:'compact'});}}},y:{ticks:{font:{size:10}}}}})});
+  var rn=document.getElementById('rank-neg');
+  if(rn)rn.innerHTML=sorted.map(function(r,i){var cl=i<3?['rn1','rn2','rn3'][i]:'rnn';return '<div class="ri"><div class="rnum '+cl+'">'+(i+1)+'</div><div class="ri-info"><div class="ri-nm">Neg. '+r.negociacao+'</div><div class="ri-dt">'+r.mes+' · '+normF(r.fonte)+' · <span class="sb2 '+sCls(r.status)+'">'+nSt(r.status)+'</span></div></div><div class="ri-val">'+R(r.valor_recomp)+'</div></div>';}).join('');
+  var el=document.getElementById('extra-stats');if(!el)return;
+  var d=FD.filter(function(r){return !isEx(r.status);}),nAll=FD.length||1;
+  var dRec=d.filter(function(r){return r.valor_recomp>0;}),nR=dRec.length||1;
+  var tV=dRec.reduce(function(s,r){return s+r.valor_recomp;},0);
+  var vm=tV/nR,tick=dRec.reduce(function(s,r){return s+r.valor_pedido;},0)/nR;
+  var pOK=(FD.filter(function(r){return nSt(r.status)==='OK';}).length/nAll*100).toFixed(1);
+  var pCn=(FD.filter(function(r){return nSt(r.status)==='CANCELADO'||nSt(r.status)==='REPROVADA';}).length/nAll*100).toFixed(1);
+  el.innerHTML='<div style="margin-bottom:9px;padding:7px 10px;background:rgba(79,142,247,.07);border-radius:7px;font-size:11px;color:#94a3b8">⚠ Totais excluindo: Reprovadas, Expiradas, Substituídas e Outros</div>'+
+    '<div class="srow"><div class="sbox"><div class="sv" style="color:#22c55e">'+pOK+'%</div><div class="sl">Concluídas</div></div><div class="sbox"><div class="sv" style="color:#ef4444">'+pCn+'%</div><div class="sl">Canceladas</div></div><div class="sbox"><div class="sv" style="color:#4f8ef7">'+R(vm)+'</div><div class="sl">Valor Médio<br><span style="font-size:9px">(recompostas)</span></div></div></div>'+
+    '<div class="srow"><div class="sbox"><div class="sv" style="color:#f59e0b">'+R(tick)+'</div><div class="sl">Ticket Médio<br><span style="font-size:9px">(recompostas)</span></div></div><div class="sbox"><div class="sv" style="color:#a855f7">'+R(tV)+'</div><div class="sl">Total Recomposto<br><span style="font-size:9px">(válidas)</span></div></div><div class="sbox"><div class="sv" style="color:#06b6d4">'+nR+'</div><div class="sl">Negociações<br>Recompostas</div></div></div>';
+}
+
+// ===== MARGEM =====
+function updMargemCards(){
+  var el=document.getElementById('m-cards');if(!el)return;
+  var v=FD.filter(function(r){return !isEx(r.status);});
+  var mca=avg(v.filter(function(r){return r.mc_atual!==0;}).map(function(r){return r.mc_atual;}));
+  var mcr=avg(v.filter(function(r){return r.mc_recomp!==0;}).map(function(r){return r.mc_recomp;}));
+  var g=mcr-mca;
+  var cards=[
+    {i:'📉',l:'MC Atual Média',v:P(mca),c:mca<0?'#ef4444':mca<0.05?'#f59e0b':'#22c55e'},
+    {i:'📈',l:'MC Recomp. Média',v:P(mcr),c:'#22c55e'},
+    {i:'⬆',l:'Ganho Médio',v:'+'+(g*100).toFixed(2)+' pp',c:'#4f8ef7'},
+    {i:'🔴',l:'MC Negativa',v:v.filter(function(r){return r.mc_atual<0;}).length,c:'#ef4444'},
+    {i:'🟡',l:'MC Abaixo 5%',v:v.filter(function(r){return r.mc_atual>=0&&r.mc_atual<0.05;}).length,c:'#f59e0b'},
+    {i:'🟢',l:'MC Acima 7%',v:v.filter(function(r){return r.mc_atual>=0.07;}).length,c:'#22c55e'}
+  ];
+  el.innerHTML=cards.map(function(c){return '<div class="card blue" style="border-top:3px solid '+c.c+'"><div class="c-i">'+c.i+'</div><div class="c-l">'+c.l+'</div><div class="c-v" style="font-size:17px;color:'+c.c+'">'+c.v+'</div></div>';}).join('');
+}
+
+function updMargemCharts(){
+  var allM=Array.from(new Set(RD.records.map(function(r){return r.mes;}))).sort();
+  var v=FD.filter(function(r){return !isEx(r.status)&&(r.mc_atual!==0||r.mc_recomp!==0);}).slice(0,40);
+  if(v.length)mC('c-mc2',{type:'bar',data:{labels:v.map(function(r){return r.negociacao;}),datasets:[{label:'MC Atual (%)',data:v.map(function(r){return r2(r.mc_atual*100);}),backgroundColor:v.map(function(r){return r.mc_atual<0?'rgba(239,68,68,.75)':'rgba(239,68,68,.5)';}),borderColor:'#ef4444',borderWidth:1,borderRadius:3},{label:'MC Recomp. (%)',data:v.map(function(r){return r2(r.mc_recomp*100);}),backgroundColor:'rgba(34,197,94,.6)',borderColor:'#22c55e',borderWidth:1,borderRadius:3}]},options:cO({scales:{x:{ticks:{color:'#64748b',font:{size:9},maxRotation:60}},y:{ticks:{callback:function(vl){return vl+'%';}}}}})});
+  var bMC={};allM.forEach(function(m){bMC[m]={a:[],r:[]};});
+  FD.filter(function(r){return !isEx(r.status);}).forEach(function(r){if(bMC[r.mes]){if(r.mc_atual!==0)bMC[r.mes].a.push(r.mc_atual);if(r.mc_recomp!==0)bMC[r.mes].r.push(r.mc_recomp);}});
+  mC('c-mcavg',{type:'line',data:{labels:allM,datasets:[{label:'MC Atual Média',data:allM.map(function(m){var x=avg(bMC[m].a);return x?r2(x*100):null;}),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',fill:true,tension:.4,pointRadius:7,pointBackgroundColor:'#ef4444',spanGaps:true},{label:'MC Recomp Média',data:allM.map(function(m){var x=avg(bMC[m].r);return x?r2(x*100):null;}),borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.4,pointRadius:7,pointBackgroundColor:'#22c55e',spanGaps:true}]},options:cO({scales:{y:{ticks:{callback:function(vl){return vl+'%';}}}}})});
+  var bk={'MC < 0%':0,'0–2%':0,'2–5%':0,'5–7%':0,'7–10%':0,'> 10%':0};
+  FD.forEach(function(r){var x=r.mc_atual*100;if(x<0)bk['MC < 0%']++;else if(x<2)bk['0–2%']++;else if(x<5)bk['2–5%']++;else if(x<7)bk['5–7%']++;else if(x<10)bk['7–10%']++;else bk['> 10%']++;});
+  var kc=['#ef4444','#f97316','#f59e0b','#84cc16','#22c55e','#06b6d4'];
+  mC('c-mcdist',{type:'bar',data:{labels:Object.keys(bk),datasets:[{data:Object.values(bk),backgroundColor:kc.map(function(c){return c+'aa';}),borderColor:kc,borderWidth:2,borderRadius:6,label:'Qtd'}]},options:cO({plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:1}}}})});
+  var bg={};allM.forEach(function(m){bg[m]=[];});
+  FD.filter(function(r){return !isEx(r.status);}).forEach(function(r){if(bg[r.mes]&&r.mc_atual!==0&&r.mc_recomp!==0)bg[r.mes].push((r.mc_recomp-r.mc_atual)*100);});
+  mC('c-mcganho',{type:'bar',data:{labels:allM,datasets:[{data:allM.map(function(m){return r2(avg(bg[m]));}),backgroundColor:allM.map(function(m){return avg(bg[m])>=0?'rgba(34,197,94,.7)':'rgba(239,68,68,.7)';}),borderColor:allM.map(function(m){return avg(bg[m])>=0?'#22c55e':'#ef4444';}),borderWidth:2,borderRadius:6,label:'pp'}]},options:cO({plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(vl){return (vl>0?'+':'')+vl+' pp';}}}}})});
+  var tb=document.getElementById('mdt-body');if(!tb)return;
+  var va=FD.filter(function(r){return !isEx(r.status)&&(r.mc_atual!==0||r.mc_recomp!==0);}).sort(function(a,b){return (b.mc_recomp-b.mc_atual)-(a.mc_recomp-a.mc_atual);});
+  tb.innerHTML=va.map(function(r){
+    var g=r.mc_recomp-r.mc_atual,mp=Math.max(0,Math.min(100,r.mc_atual*100/15*100)),rp=Math.max(0,Math.min(100,r.mc_recomp*100/15*100));
+    return '<tr><td style="padding:7px 10px;font-size:12px;font-weight:600">'+r.negociacao+'</td><td style="padding:7px 10px;font-size:11px;color:#64748b">'+r.mes+'</td><td style="padding:7px 10px;text-align:right;color:'+(r.mc_atual<0?'#ef4444':'#94a3b8')+';font-weight:600">'+P(r.mc_atual)+'</td><td style="padding:7px 10px;text-align:right;color:#22c55e;font-weight:600">'+P(r.mc_recomp)+'</td><td style="padding:7px 10px;text-align:right;color:'+(g>=0?'#4f8ef7':'#ef4444')+';font-weight:700">'+(g>=0?'+':'')+(g*100).toFixed(2)+' pp</td><td style="padding:7px 10px;text-align:right;color:#4f8ef7">'+R(r.valor_recomp)+'</td><td style="padding:7px 10px;min-width:110px"><div style="position:relative;height:13px;background:#1a1d27;border-radius:3px;overflow:hidden"><div style="position:absolute;height:100%;width:'+mp+'%;background:'+(r.mc_atual<0?'#ef4444':'#f59e0b')+';opacity:.8;border-radius:3px"></div><div style="position:absolute;height:100%;width:'+rp+'%;background:#22c55e;opacity:.4;border-radius:3px"></div></div></td><td style="padding:7px 10px"><span class="sb2 '+sCls(r.status)+'">'+nSt(r.status)+'</span></td></tr>';
+  }).join('')||'<tr><td colspan="8" style="padding:20px;text-align:center;color:#64748b">Nenhum dado válido</td></tr>';
+}
+
+// ===== VERBA =====
+function updVerba(){
+  var el=document.getElementById('verba-prog');if(!el)return;
+  var oV=RD.verbas.filter(function(v){return v.fornecedor==='OMO';});
+  var aV=RD.verbas.filter(function(v){return v.fornecedor==='ANIBAL';});
+  var dV=RD.verbas.filter(function(v){return v.fornecedor==='DIAGEO';});
+  function grp(title,cor,items,totAll,gastAll){
+    var pAll=totAll?Math.min(100,gastAll/totAll*100):0;
+    var cBar=pAll>80?'#ef4444':pAll>60?'#f59e0b':cor;
+    var rows=items.map(function(v){
+      var p=v.total?Math.min(100,v.gasto/v.total*100):0,c=p>80?'#ef4444':p>60?'#f59e0b':cor;
+      return '<div style="padding-left:13px;margin-bottom:9px"><div class="pi-r"><span style="font-size:11px;color:var(--mu)">↳ '+v.nome+'</span><span style="font-size:12px;font-weight:600">'+(v.total>0?p.toFixed(1)+'%':'—')+'</span></div>'+(v.total>0?'<div class="pb-bg"><div class="pb-f" style="width:'+p+'%;background:'+c+'"></div></div>':'')+'<div style="display:flex;justify-content:space-between;margin-top:2px;font-size:10px;color:#64748b"><span>Gasto: '+R(v.gasto)+'</span><span>'+(v.total>0?'Total: '+R(v.total)+' | Saldo: <b style="color:#22c55e">'+R(v.total-v.gasto)+'</b>':'(sem teto)')+'</span></div></div>';
+    }).join('');
+    var hb=totAll>0?'<span style="font-size:11px;color:'+cor+';font-weight:700;margin-left:7px">'+pAll.toFixed(1)+'% utilizado</span>':'';
+    return '<div style="margin-bottom:18px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px"><span style="font-size:13px;font-weight:700">'+title+hb+'</span><span style="font-size:12px;color:#64748b">Gasto: '+R(gastAll)+(totAll>0?' / '+R(totAll):'')+'</span></div>'+(totAll>0?'<div class="pb-bg" style="height:9px;margin-bottom:9px"><div class="pb-f" style="width:'+pAll+'%;background:'+cBar+'"></div></div>':'')+rows+(totAll>0?'<div style="font-size:11px;color:#94a3b8;margin-top:5px;padding-top:7px;border-top:1px solid rgba(255,255,255,.05)">Saldo: <b style="color:#22c55e;font-size:13px">'+R(totAll-gastAll)+'</b></div>':'')+'</div>';
+  }
+  var oG=oV.reduce(function(s,v){return s+v.gasto;},0),oT=oV.reduce(function(s,v){return s+v.total;},0);
+  var aG=aV.reduce(function(s,v){return s+v.gasto;},0);
+  var dG=dV.reduce(function(s,v){return s+v.gasto;},0),dT=dV.reduce(function(s,v){return s+v.total;},0);
+  el.innerHTML=grp('🟦 Verba OMO','#06b6d4',oV,oT,oG)+grp('⬜ Verba ANIBAL','#94a3b8',aV,0,aG)+grp('🟣 Verba DIAGEO','#a855f7',dV,dT,dG)+
+    '<div style="background:rgba(79,142,247,.07);border:1.5px solid rgba(79,142,247,.3);border-radius:9px;padding:12px;margin-top:2px"><div style="font-size:13px;font-weight:700;color:#4f8ef7;margin-bottom:5px">⚡ TOTAL COMBINADO (OMO + DIAGEO)</div><div class="pb-bg" style="height:9px;margin-bottom:7px"><div class="pb-f" style="width:'+(289993.69/600000*100).toFixed(1)+'%;background:#4f8ef7"></div></div><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;font-size:12px"><span style="color:#94a3b8">Gasto: <b style="color:#e2e8f0">'+R(289993.69)+'</b></span><span style="color:#94a3b8">Total: <b style="color:#e2e8f0">'+R(600000)+'</b></span><span style="color:#94a3b8">Saldo: <b style="color:#22c55e;font-size:14px">'+R(600000-289993.69)+'</b></span><span style="color:#94a3b8">Utilizado: <b style="color:#f59e0b">'+(289993.69/600000*100).toFixed(1)+'%</b></span></div></div>';
+  var byM={};RD.verbas.forEach(function(v){byM[v.mes]=(byM[v.mes]||0)+v.gasto;});
+  var ms=Object.keys(byM).sort();
+  mC('c-vevol',{type:'line',data:{labels:ms,datasets:[{label:'Verba Gasta',data:ms.map(function(m){return r2(byM[m]);}),borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.12)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#f59e0b'}]},options:cO({plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(vl){return 'R$ '+Number(vl).toLocaleString('pt-BR',{notation:'compact'});}}}}})}); 
+  var tot=FD.length||1;
+  var qOK=FD.filter(function(r){return nSt(r.status)==='OK';}).length;
+  var qCn=FD.filter(function(r){return nSt(r.status)==='CANCELADO'||nSt(r.status)==='REPROVADA';}).length;
+  var qPd=FD.filter(function(r){return nSt(r.status)==='EM PROCESSO';}).length;
+  function dg(id,val,color){mC(id,{type:'doughnut',data:{datasets:[{data:[val*100,(1-val)*100],backgroundColor:[color+'cc','rgba(46,51,80,.5)'],borderWidth:0,circumference:240,rotation:240}]},options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false},title:{display:true,text:(val*100).toFixed(1)+'%',color:'#e2e8f0',font:{size:17,weight:'bold'},position:'bottom'}},scales:{x:{display:false},y:{display:false}},responsive:true,maintainAspectRatio:false}});}
+  dg('c-pok',qOK/tot,'#22c55e');dg('c-pcan',qCn/tot,'#ef4444');dg('c-pproc',qPd/tot,'#f59e0b');
+}
+
+// ===== TABLE =====
+function tSrch(){tQ=document.getElementById('tbl-q').value.toLowerCase();curPg=1;renderT();}
+function srtT(c){if(sCol===c)sAsc=!sAsc;else{sCol=c;sAsc=true;}renderT();}
+function getTD(){
+  var d=FD.filter(function(r){return !tQ||(r.negociacao+r.cliente+r.ci+r.status+r.mes+r.fonte+r.numped+r.valida).toLowerCase().indexOf(tQ)>=0;});
+  var ascEl=document.getElementById('tbl-asc'),asc=ascEl&&ascEl.checked;
+  var mo={'Março/2026':1,'Maio/2026':2,'Junho/2026':3,'Julho/2026':4,'Agosto/2026':5,'Setembro/2026':6};
+  if(sCol>=0){
+    var keys=['mes','fonte','ci','cliente','data','negociacao','valor_pedido','receita_liquida','valor_mc','mc_atual','valor_recomp','mc_recomp','status','coluna1','numped','valida'];
+    var k=keys[sCol];
+    d=d.slice().sort(function(a,b){var va=a[k]||'',vb=b[k]||'';var r=typeof va==='number'?va-vb:String(va).localeCompare(String(vb),'pt-BR');return sAsc?r:-r;});
+  } else {
+    d=d.slice().sort(function(a,b){var ma=mo[a.mes]||99,mb=mo[b.mes]||99;return asc?ma-mb:mb-ma;});
+  }
+  return d;
+}
+function renderT(){
+  var data=getTD(),total=data.length,pages=Math.ceil(total/PS)||1;
+  if(curPg>pages)curPg=pages;
+  var s=(curPg-1)*PS,e=s+PS,pD=data.slice(s,e);
+  var top3=data.slice().sort(function(a,b){return b.valor_recomp-a.valor_recomp;}).slice(0,3).map(function(r){return r.negociacao;});
+  document.getElementById('tbl-bdg').textContent=total+' registros';
+  document.getElementById('tbl-info').textContent='Exibindo '+(total?s+1:0)+'–'+Math.min(e,total)+' de '+total;
+  document.getElementById('tbl-body').innerHTML=pD.map(function(r){
+    var hi=top3.indexOf(r.negociacao)>=0?'class="hi"':'';
+    var df=r.data?String(r.data).replace(' 00:00:00','').substring(0,10):'—';
+    return '<tr '+hi+'><td>'+r.mes+'</td>'+
+      '<td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(79,142,247,.15);color:#4f8ef7">'+normF(r.fonte)+'</span></td>'+
+      '<td>'+(r.ci||'—')+'</td><td>'+(r.cliente||'—')+'</td><td>'+df+'</td>'+
+      '<td><b>'+r.negociacao+'</b></td>'+
+      '<td style="text-align:right">'+R(r.valor_pedido)+'</td>'+
+      '<td style="text-align:right;color:#06b6d4">'+R(r.receita_liquida||0)+'</td>'+
+      '<td style="text-align:right;color:#f59e0b">'+R(r.valor_mc||0)+'</td>'+
+      '<td style="text-align:right;color:'+(r.mc_atual<0?'#ef4444':'#94a3b8')+'">'+P(r.mc_atual)+'</td>'+
+      '<td style="text-align:right;font-weight:700;color:#4f8ef7">'+R(r.valor_recomp)+'</td>'+
+      '<td style="text-align:right;color:#22c55e">'+P(r.mc_recomp)+'</td>'+
+      '<td><span class="sb2 '+sCls(r.status)+'">'+nSt(r.status)+'</span></td>'+
+      '<td style="color:var(--mu)">'+(r.coluna1||'—')+'</td>'+
+      '<td style="color:var(--mu)">'+(r.numped||'—')+'</td>'+
+      '<td style="color:var(--mu)">'+(r.valida||'—')+'</td>'+
+      '<td style="text-align:center">'+(isEf(r.status)?'<span style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#4ade80">✔ '+R(r.valor_recomp)+'</span>':'<span style="font-size:10px;color:#475569">—</span>')+'</td>'+
+      '</tr>';
+  }).join('');
+  var btns='';
+  if(curPg>1)btns+='<button class="pbt" onclick="goPg('+(curPg-1)+')">‹</button>';
+  for(var p=Math.max(1,curPg-2);p<=Math.min(pages,curPg+2);p++)btns+='<button class="pbt'+(p===curPg?' a':'')+'" onclick="goPg('+p+')">'+p+'</button>';
+  if(curPg<pages)btns+='<button class="pbt" onclick="goPg('+(curPg+1)+')">›</button>';
+  document.getElementById('tbl-pg').innerHTML=btns;
+}
+function goPg(p){curPg=p;renderT();}
+
+// ===== IMPORT =====
+var FLDS={negociacao:'Negociação (Cód.)',ci:'CI',cliente:'Cliente',data:'Data',valor_pedido:'Valor Pedido',receita_liquida:'Receita Líquida',valor_mc:'Valor MC',mc_atual:'MC Atual',valor_recomp:'Valor a Recompor',mc_recomp:'MC Recomposta',status:'Status',coluna1:'Coluna1',numped:'NUMPED',valida:'VALIDA'};
+
+function doDrop(e){var f=e.dataTransfer.files[0];if(f)readFile({target:{files:[f]}});}
+
+function readFile(e){
+  var file=e.target.files[0];if(!file)return;
+  logImp('📂 Lendo: '+file.name+'...');
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var rows,nm=file.name.toLowerCase();
+      if(nm.indexOf('.csv')>=0){
+        var txt=ev.target.result;
+        var lines=txt.split(/\r?\n/).filter(function(l){return l.trim();});
+        var sep=lines[0].indexOf(';')>=0?';':(lines[0].indexOf('\t')>=0?'\t':',');
+        rows=lines.map(function(l){return l.split(sep).map(function(c){return c.trim().replace(/^"|"$/g,'');});});
+      } else {
+        var wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,dateNF:'YYYY-MM-DD'});
+      }
+      // Find header: first row with 3+ text cells (non-numeric, reasonable length)
+      var hIdx=0;
+      for(var i=0;i<Math.min(10,rows.length);i++){
+        var tc=rows[i].filter(function(c){return c&&isNaN(Number(c))&&String(c).trim().length>1&&String(c).trim().length<50;});
+        if(tc.length>=3){hIdx=i;break;}
+      }
+      impRows=rows.slice(hIdx+1).filter(function(r){return r.some(function(c){return String(c).trim();});});
+      buildMap(rows[hIdx].map(function(h){return String(h).trim();}));
+      logImp('✅ Arquivo lido! '+impRows.length+' linhas de dados detectadas (cabeçalho linha '+(hIdx+1)+').');
+    }catch(err){logImp('❌ Erro ao ler arquivo: '+err.message,true);}
+  };
+  if(file.name.toLowerCase().indexOf('.csv')>=0)reader.readAsText(file,'UTF-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+function buildMap(cols){
+  impCols=cols;
+  document.getElementById('imp-map').style.display='block';
+  document.getElementById('map-grid').innerHTML=Object.entries(FLDS).map(function(e){
+    var k=e[0],lbl=e[1];
+    return '<div><div class="fl-l">'+lbl+'</div><select class="fs" id="mp-'+k+'"><option value="">— Ignorar —</option>'+
+      cols.map(function(h,i){return '<option value="'+i+'"'+(aMatch(h,k)?' selected':'')+'>'+(h||'(col '+(i+1)+')')+'</option>';}).join('')+'</select></div>';
+  }).join('');
+  document.getElementById('map-grid').onchange=updPrev;
+  updPrev();
+}
+
+function aMatch(h,field){
+  var hl=h.toLowerCase().replace(/[^a-z0-9 ]/g,'');
+  var mp={
+    negociacao:['neg','cod neg','negociacao'],
+    ci:['ci','cod ci'],
+    cliente:['cliente','razao'],
+    data:['data neg','data negoc','date'],
+    valor_pedido:['valor pedido','vl pedido'],
+    receita_liquida:['receita liquida','receita liq','rec liq'],
+    valor_mc:['valor mc','vl mc'],
+    mc_atual:['mc atual','mc realizada','mc real','realizada','mc atua'],
+    valor_recomp:['valor a recompor','vl recomp','valor recomp'],
+    mc_recomp:['mc recomposta','mc recomp'],
+    status:['status','situacao'],
+    coluna1:['coluna1','coluna 1'],
+    numped:['numped','num ped','numero pedido'],
+    valida:['valida','valid']
+  };
+  return (mp[field]||[]).some(function(k){return hl.indexOf(k)>=0;});
+}
+
+function gCI(f){var el=document.getElementById('mp-'+f);return el&&el.value!==''?parseInt(el.value):-1;}
+
+function updPrev(){
+  var sample=impRows.slice(0,4),flds=Object.keys(FLDS);
+  document.getElementById('imp-prev').innerHTML=
+    '<div style="font-size:11px;color:#64748b;margin-bottom:6px">Pré-visualização ('+sample.length+' linhas):</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'+
+    '<thead><tr>'+flds.map(function(f){return '<th style="padding:5px 8px;background:#1a1d27;color:#94a3b8;text-align:left;border-bottom:1px solid #2e3350;white-space:nowrap">'+FLDS[f]+'</th>';}).join('')+'</tr></thead>'+
+    '<tbody>'+sample.map(function(r){return '<tr>'+flds.map(function(f){var i=gCI(f);return '<td style="padding:4px 8px;border-bottom:1px solid rgba(46,51,80,.4);color:#e2e8f0">'+(i>=0&&r[i]!==undefined?r[i]:'—')+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+}
+
+function doImport(){
+  var mesEl=document.getElementById('imp-mes');
+  var mes=mesEl.value==='outro'?document.getElementById('imp-mes2').value.trim():mesEl.value;
+  var fonte=document.getElementById('imp-fonte').value;
+  if(!mes||!fonte){logImp('⚠ Selecione o Mês e a Fonte antes de confirmar.',true);return;}
+  function sfN(v){try{var f=parseFloat(String(v).replace(',','.'));return isNaN(f)?0:f;}catch(e){return 0;}}
+  var added=0,upd=0,skip=0;
+  impRows.forEach(function(row){
+    function get(f,def){def=def||'';var i=gCI(f);return i>=0?String(row[i]||'').trim():def;}
+    var neg=get('negociacao');
+    if(!neg||neg==='NaN'){skip++;return;}
+    var rec={
+      mes:mes,fonte:fonte,
+      ci:get('ci'),cliente:get('cliente'),data:get('data'),
+      negociacao:neg,
+      valor_pedido:sfN(row[gCI('valor_pedido')]),
+      receita_liquida:sfN(row[gCI('receita_liquida')]),
+      valor_mc:sfN(row[gCI('valor_mc')]),
+      mc_atual:sfN(row[gCI('mc_atual')]),
+      valor_recomp:sfN(row[gCI('valor_recomp')]),
+      mc_recomp:sfN(row[gCI('mc_recomp')]),
+      status:get('status'),
+      coluna1:get('coluna1'),
+      numped:get('numped'),
+      valida:get('valida')
+    };
+    var ei=RD.records.findIndex(function(r){return r.negociacao===neg&&r.mes===mes&&r.fonte===fonte;});
+    if(ei>=0){RD.records[ei]=rec;upd++;}else{RD.records.push(rec);added++;}
+  });
+  // Save and sync
+  saveData();
+  // Rebuild filters and update ALL tabs immediately
+  buildF();
+  applyF();
+  logImp('✅ Importação concluída!\n✔ '+added+' negociações adicionadas · '+upd+' atualizadas · '+skip+' ignoradas\nMês: '+mes+' | Fonte: '+fonte+'\n\n🔄 Todos os gráficos e tabelas foram atualizados agora.');
+  document.getElementById('imp-map').style.display='none';
+  document.getElementById('f-imp').value='';
+  impRows=[];
+}
+
+function cancelImp(){document.getElementById('imp-map').style.display='none';document.getElementById('f-imp').value='';impRows=[];}
+
+function logImp(msg,err){
+  var el=document.getElementById('imp-log');
+  el.style.display='block';
+  el.style.color=err?'#ef4444':'#94a3b8';
+  el.innerHTML=msg.replace(/\n/g,'<br>');
+}
+
+// ===== EXPORT =====
+function doXls(tab){
+  var rows,fn;
+  if(tab==='verba'){
+    rows=[['Fornecedor','Nome','Mês','Total','Gasto','Saldo','% Util.']];
+    RD.verbas.forEach(function(v){rows.push([v.fornecedor,v.nome,v.mes,v.total,v.gasto,v.total-v.gasto,v.total?(v.gasto/v.total*100).toFixed(1)+'%':'—']);});
+    fn='verba.xlsx';
+  } else if(tab==='margem'){
+    var d=FD.filter(function(r){return !isEx(r.status);});
+    rows=[['Negociação','Mês','Fonte','MC Atual (%)','MC Recomp (%)','Ganho (pp)','Valor Recomp','Status']];
+    d.forEach(function(r){rows.push([r.negociacao,r.mes,normF(r.fonte),(r.mc_atual*100).toFixed(2),(r.mc_recomp*100).toFixed(2),((r.mc_recomp-r.mc_atual)*100).toFixed(2),r.valor_recomp,r.status]);});
+    fn='margem.xlsx';
+  } else if(tab==='clientes'){
+    var bC={};FD.forEach(function(r){if(r.cliente)bC[r.cliente]=(bC[r.cliente]||0)+r.valor_recomp;});
+    rows=[['Cliente','Valor Recomposto']];
+    Object.entries(bC).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){rows.push([e[0],e[1]]);});
+    fn='clientes.xlsx';
+  } else {
+    var d2=getTD();
+    rows=[['Mês','Fonte','CI','Cliente','Data','Negociação','Valor Pedido','Receita Líquida','Valor MC','MC Atual','Valor Recomp','MC Recomp','Status','Coluna1','NUMPED','VALIDA','Efetivo (R$)']];
+    d2.forEach(function(r){rows.push([r.mes,normF(r.fonte),r.ci,r.cliente,r.data,r.negociacao,r.valor_pedido,r.receita_liquida||0,r.valor_mc||0,r.mc_atual,r.valor_recomp,r.mc_recomp,r.status,r.coluna1||'',r.numped||'',r.valida||'',isEf(r.status)?r.valor_recomp:0]);});
+    fn='negociacoes.xlsx';
+  }
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Dados');
+  XLSX.writeFile(wb,fn);
+}
+
+function doPdf(tab){
+  var all=['t-overview','t-clientes','t-negociacoes','t-margem','t-verba','t-importar'];
+  var tid='t-'+(tab==='table'?'overview':tab);
+  all.forEach(function(t){var el=document.getElementById(t);if(el)el.classList.remove('active');});
+  var act=document.getElementById(tid);if(act)act.classList.add('active');
+  window.print();
+  setTimeout(function(){
+    all.forEach(function(t){var el=document.getElementById(t);if(el)el.classList.remove('active');});
+    document.getElementById('t-'+activeTab).classList.add('active');
+  },800);
+}
+
+// ===== MAIN UPDATE — called after every filter change =====
+function updAll(){
+  // Always update cards + table (visible in all tabs)
+  updEf();updCards();renderT();
+  // Always re-render whichever tab is active
+  renderTab(activeTab);
+  document.getElementById('hdate').textContent='Atualizado: '+new Date().toLocaleString('pt-BR');
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  initSync();
+  buildF();
+  applyF();
+});
+</script>
+</body>
+</html>
