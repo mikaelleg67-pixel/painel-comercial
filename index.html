@@ -250,11 +250,6 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
       <div id="sync-status" style="display:none">
         <span id="sync-dot"></span><span id="sync-text"></span>
       </div>
-      <button id="editor-icon-btn" title="Editor de Regras (ADMINPRICING)" 
-        style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 12px;font-size:16px;cursor:pointer;color:#fff;transition:all .15s"
-        onmouseover="this.style.background='rgba(255,255,255,.2)'" 
-        onmouseout="this.style.background='rgba(255,255,255,.1)'"
-        onclick="openEditorFromIcon()">⚙️</button>
     </div>
   </div>
 </header>
@@ -624,7 +619,7 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
           <table class="ref-table">
             <thead><tr><th>Categoria</th><th>Regra</th><th>Observações</th></tr></thead>
             <tbody>
-              <tr><td>Cabos (Lúcio)</td><td class="mono">7% mín.</td><td>UF geradora de crédito: regra normal</td></tr>
+              <tr><td>Cabos (Lúcio)</td><td class="mono">7% mín.</td><td>MC mínima 7%. Regra normal para UFs geradoras de crédito</td></tr>
               <tr><td><strong>Demais Fornecedores (Eletro)</strong></td><td class="mono">5% / 6%</td><td>
                 MC orçada <strong>abaixo</strong> do normal → até 1,5% abaixo do orçamento<br>
                 Limite mín.: <span style="color:#2563EB;font-weight:700">5%</span> UF normal · <span style="color:#DC2626;font-weight:700">6%</span> UF ICMS<br>
@@ -654,7 +649,7 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
               <tr><td><strong>HL Highlight</strong></td><td class="mono" style="color:var(--danger)">3%</td><td>Verificar promoção maior no Portal de Vendas</td></tr>
             </tbody>
           </table>
-          <div class="promo-note" style="margin-top:10px">ℹ️ Demais promoções são da indústria e <strong>não afetam a margem</strong>. Informar em observação somente Lorenzetti, Havaianas e Nadir.</div>
+          <div class="promo-note" style="margin-top:10px">ℹ️ Demais promoções são da indústria e <strong>não afetam a margem</strong></div>
         </div>
 
         <!-- ── PAINEL ADMIN SECRETO ── -->
@@ -894,7 +889,7 @@ function getAlerts(){
   if(cat==='almais') alerts.push({type:'red',icon:'🔴',title:'Negociação Almais',body:'O título da negociação DEVE conter "ALMAIS+RCA".'});
   if(cat==='unilever') alerts.push({type:'yellow',icon:'🟡',title:'Negociação Unilever',body:'Quando a observação contiver "MD", a margem acordada é no mínimo 6%. Alinhamento com Perin/Josimar obrigatório.'});
   if(cat==='samsung') alerts.push({type:'yellow',icon:'🟡',title:'Fornecedor Samsung',body:'UFs normais: MC mín. 5% | UFs ICMS: MC mín. 6%.'});
-  if(cat==='cabos') alerts.push({type:'red',icon:'🔴',title:'Cabos (Lúcio)',body:'MC mínima obrigatória de 7%. UF geradora de crédito: aplicar regra normal.'});
+  if(cat==='cabos') alerts.push({type:'red',icon:'🔴',title:'Cabos (Lúcio)',body:'MC mínima obrigatória de 7%. Regra normal para UFs geradoras de crédito.'});
   if(cat==='telefonia') alerts.push({type:'blue',icon:'ℹ️',title:'Demais Fornecedores (Eletro)',body:'MC orçada abaixo do normal: pode chegar até 1,5% abaixo do orçamento. Mínimo: 5% UF normal / 6% UF ICMS.'});
   if(dir==='agrovet'&&val>0&&val<10000) alerts.push({type:'blue',icon:'ℹ️',title:'Agrovet — Negociação abaixo de R$10k',body:'Exclusivamente para itens Agrovet. Se misturar com Matcon, seguir a regra normal.'});
   if(mcOrcada>0&&val>0){
@@ -1301,37 +1296,7 @@ function calcMargemAjustada() {
 }
 
 // ── OPEN EDITOR FROM ICON ──
-function openEditorFromIcon() {
-  if (sessionStorage.getItem('editor_auth') === '1') {
-    // find the editor tab button and click it
-    const btns = document.querySelectorAll('.tab-btn');
-    for (const b of btns) {
-      if (b.innerHTML.includes('Editor')) { b.click(); return; }
-    }
-    // fallback: directly switch
-    switchTab('editor-regras', null);
-    renderEditor();
-  } else {
-    const pw = prompt('🔐 Senha de acesso ao Editor de Regras:');
-    if (pw === 'ADMINPRICING') {
-      sessionStorage.setItem('editor_auth', '1');
-      // Create editor tab button visibility if not in nav
-      // The tab content already exists, just switch to it
-      // First activate it by making all others inactive
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      const edTab = document.getElementById('tab-editor-regras');
-      if (edTab) {
-        edTab.classList.add('active');
-        renderEditor();
-        edTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        toast('⚙️ Editor de Regras desbloqueado');
-      }
-    } else if (pw !== null) {
-      alert('Senha incorreta.');
-    }
-  }
-}
+
 
 // ── MC QUICK BUTTONS ──
 function setMcQuick(val) {
@@ -1549,8 +1514,7 @@ async function pollForChanges() {
           const newRules = JSON.parse(r.value);
           RULES = newRules;
           calculate();
-          renderEditor && renderEditor();
-          const who = newRules.lastUpdate || '';
+                const who = newRules.lastUpdate || '';
           updateSyncStatus('synced', who);
           if (!sessionStorage.getItem('_justSaved')) {
             showSyncBanner('🔄 Regras atualizadas por outro usuário — ' + who);
@@ -1885,7 +1849,7 @@ function filterSearch(){
     {cat:'ICMS (DF/GO/ES/PA)',title:'Matcon/Agrovet PMR ≥60d ≥ R$50k',mc:'11%',text:'MC mínima 11%.'},
     {cat:'ICMS (DF/GO/ES/PA)',title:'Matcon/Agrovet PMR ≥60d R$20k–R$49k',mc:'12%',text:'MC mínima 12%.'},
     {cat:'ICMS (DF/GO/ES/PA)',title:'Matcon/Agrovet PMR ≥60d < R$20k',mc:'13%',text:'MC mínima 13%.'},
-    {cat:'Especiais',title:'Cabos (Lúcio)',mc:'7%',text:'MC mínima obrigatória 7%. UF geradora de crédito: regra normal.'},
+    {cat:'Especiais',title:'Cabos (Lúcio)',mc:'7%',text:'MC mínima obrigatória 7%. Regra normal para UFs geradoras de crédito.'},
     {cat:'Especiais',title:'Amaciantes CIF',mc:'7%',text:'MC mínima 7% CIF. UFs ICMS: 8%.'},
     {cat:'Especiais',title:'Amaciantes FOB',mc:'5%',text:'MC mínima 5% FOB. UFs ICMS: 8%.'},
     {cat:'Especiais',title:'Detergente Líquido CIF',mc:'7%',text:'MC mínima 7%. UFs ICMS: 8%.'},
@@ -2066,7 +2030,7 @@ const APROVADORES = [
   {nome:'Josimar / Pamela',area:'Todas as Diretorias',regras:['Negociações com orçamento negativo','Itens em PME com orçamento negativo','Situações fora dos parâmetros normais'],contato:'Alinhamento prévio obrigatório'},
   {nome:'Perin / Josimar',area:'Unilever',regras:['Negociações Unilever com "MD" na observação','MC acordada mínima de 6%'],contato:'Alinhamento interno Unilever'},
   {nome:'Wesley / Gustavo / Gabrielle',area:'Destilados',regras:['Compradores responsáveis pela aprovação de Destilados','MC mínima geral 6%'],contato:'Aprovação conforme sugestão de compras'},
-  {nome:'Lúcio',area:'Cabos',regras:['MC mínima obrigatória de 7%','Regra especial para UFs geradoras de crédito'],contato:'Responsável da categoria Cabos'},
+  {nome:'Lúcio',area:'Cabos',regras:['MC mínima obrigatória de 7%','Regra normal para UFs geradoras de crédito'],contato:'Responsável da categoria Cabos'},
 ];
 
 function renderAprovadores(){
@@ -2285,15 +2249,7 @@ async function saveRules() {
   } catch(e) { toast('⚠️ Erro ao salvar regras'); }
 }
 
-async function resetRules() {
-  RULES = {...DEFAULT_RULES};
-  RULES.lastUpdate = new Date().toLocaleString('pt-BR');
-  await window.storage.set('shared_rules', JSON.stringify(RULES), true);
-  await window.storage.set('custom_rules', JSON.stringify(RULES));
-  toast('↺ Regras restauradas para o padrão');
-  renderEditor();
-  calculate();
-}
+
 
 // ─────────────────────────────────────────────
 // RENDER TABS
@@ -2308,164 +2264,7 @@ function renderItemTab() {
   if (!el) return;
 }
 
-function renderEditor() {
-  const el = document.getElementById('editor-body');
-  if (!el) return;
 
-  // Update upload status from storage info
-  (async () => {
-    try {
-      const cpEl = document.getElementById('cp-ed-status');
-      const itemEl = document.getElementById('item-ed-status');
-      if(cpEl) cpEl.textContent = '✅ ' + CP_DATA.length + ' CPs na base';
-      if(itemEl) itemEl.textContent = '✅ ' + ITEM_DATA.length.toLocaleString('pt-BR') + ' itens na base';
-    } catch(e) {}
-  })();
-
-  el.innerHTML = `
-    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <div style="padding:10px 14px;background:var(--accent-pale);border-radius:8px;font-size:12px;color:var(--accent);flex:1">
-        ℹ️ Última atualização: <strong>${RULES.lastUpdate||'—'}</strong>
-      </div>
-      <button onclick="if(confirm('Restaurar todas as regras para o padrão original?')) resetRules()" 
-              style="padding:9px 16px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-mid);cursor:pointer">
-        ↺ Restaurar Padrão
-      </button>
-    </div>
-
-    <!-- ELETRO -->
-    <div class="ref-section">
-      <h3 style="color:var(--accent)">⚡ Eletro — Avaliação Normal</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('eletroNormal_g100','≥ R$100k',RULES.eletroNormal.g100)}
-        ${edField('eletroNormal_g50','R$50k – R$99k',RULES.eletroNormal.g50)}
-        ${edField('eletroNormal_lt50','< R$50k',RULES.eletroNormal.lt50)}
-      </div>
-    </div>
-    <div class="ref-section">
-      <h3 style="color:var(--accent)">⚡ Eletro — PMR ≥ 60 dias</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('eletroPmr60_g100','≥ R$100k',RULES.eletroPmr60.g100)}
-        ${edField('eletroPmr60_g50','R$50k – R$99k',RULES.eletroPmr60.g50)}
-        ${edField('eletroPmr60_lt50','< R$50k',RULES.eletroPmr60.lt50)}
-      </div>
-    </div>
-    <div class="ref-section">
-      <h3 style="color:var(--accent)">⚡ Eletro — Especiais e Limites</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        <!-- Vendor: sem MC mínima — segue regra normal -->
-        ${edField('eletroDeamaisNormal_mcMin','Demais Fornec. — UF Normal (mín.)',RULES.eletroDeamaisNormal.mcMin)}
-        ${edField('eletroDeamaisNormal_mcMinIcms','Demais Fornec. — UF ICMS (mín.)',RULES.eletroDeamaisNormal.mcMinIcms)}
-        ${edField('eletroSamsungNormal','Samsung — UF Normal',RULES.eletroSamsungNormal)}
-        ${edField('eletroSamsungIcms','Samsung — UF ICMS',RULES.eletroSamsungIcms)}
-      </div>
-    </div>
-
-    <!-- VAREJO / FARMA -->
-    <div class="ref-section">
-      <h3 style="color:var(--teal)">🛒 Varejo / Farma — Avaliação Normal</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('varejo_n0','≥ R$100k',RULES.varejo.normal[0])}
-        ${edField('varejo_n1','R$50k – R$99k',RULES.varejo.normal[1])}
-        ${edField('varejo_n2','< R$50k',RULES.varejo.normal[2])}
-      </div>
-    </div>
-    <div class="ref-section">
-      <h3 style="color:var(--teal)">🛒 Varejo / Farma — PMR ≥ 60 dias</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('varejo_p0','≥ R$100k',RULES.varejo.pmr60[0])}
-        ${edField('varejo_p1','R$50k – R$99k',RULES.varejo.pmr60[1])}
-        ${edField('varejo_p2','< R$50k',RULES.varejo.pmr60[2])}
-      </div>
-    </div>
-
-    <!-- MATCON -->
-    <div class="ref-section">
-      <h3 style="color:var(--warning)">🏗️ Matcon — Avaliação Normal</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('matcon_n0','≥ R$50k',RULES.matcon.normal[0])}
-        ${edField('matcon_n1','R$20k – R$49k',RULES.matcon.normal[1])}
-        ${edField('matcon_n2','< R$20k',RULES.matcon.normal[2])}
-      </div>
-    </div>
-    <div class="ref-section">
-      <h3 style="color:var(--warning)">🏗️ Matcon — PMR ≥ 60 dias</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('matcon_p0','≥ R$50k',RULES.matcon.pmr60[0])}
-        ${edField('matcon_p1','R$20k – R$49k',RULES.matcon.pmr60[1])}
-        ${edField('matcon_p2','< R$20k',RULES.matcon.pmr60[2])}
-      </div>
-    </div>
-
-    <!-- AGROVET -->
-    <div class="ref-section">
-      <h3 style="color:var(--success)">🌱 Agrovet — Avaliação Normal</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('agrovet_n0','≥ R$30k',RULES.agrovet.normal[0])}
-        ${edField('agrovet_n1','R$10k – R$29k',RULES.agrovet.normal[1])}
-        ${edField('agrovet_n2','R$5k – R$9k',RULES.agrovet.normal[2])}
-      </div>
-    </div>
-    <div class="ref-section">
-      <h3 style="color:var(--success)">🌱 Agrovet — PMR ≥ 60 dias</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('agrovet_p0','≥ R$30k',RULES.agrovet.pmr60[0])}
-        ${edField('agrovet_p1','R$10k – R$29k',RULES.agrovet.pmr60[1])}
-        ${edField('agrovet_p2','R$5k – R$9k',RULES.agrovet.pmr60[2])}
-      </div>
-    </div>
-
-    <!-- ICMS -->
-    <div class="ref-section">
-      <h3 style="color:var(--danger)">🔴 UFs ICMS (DF/GO/ES/PA) — VAF/Eletro Normal</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('icmsVaf_n0','≥ R$100k',RULES.icmsVaf.normal[0])}
-        ${edField('icmsVaf_n1','R$50k – R$99k',RULES.icmsVaf.normal[1])}
-        ${edField('icmsVaf_n2','< R$50k',RULES.icmsVaf.normal[2])}
-      </div>
-    </div>
-    <div class="ref-section">
-      <h3 style="color:var(--danger)">🔴 UFs ICMS (DF/GO/ES/PA) — VAF/Eletro PMR ≥60d</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('icmsVaf_p0','≥ R$100k',RULES.icmsVaf.pmr60[0])}
-        ${edField('icmsVaf_p1','R$50k – R$99k',RULES.icmsVaf.pmr60[1])}
-        ${edField('icmsVaf_p2','< R$50k',RULES.icmsVaf.pmr60[2])}
-      </div>
-    </div>
-
-    <!-- CATEGORIAS ESPECIAIS -->
-    <div class="ref-section">
-      <h3 style="color:var(--purple)">🏷️ Categorias Especiais</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('special_cabos','Cabos (Lúcio)',RULES.special?.cabos??7)}
-        ${edField('special_unilever','Unilever (com MD)',RULES.special?.unilever??6)}
-        ${edField('special_amaciantes_cif','Amaciantes CIF',RULES.special?.amaciantes_cif??7)}
-        ${edField('special_amaciantes_fob','Amaciantes FOB',RULES.special?.amaciantes_fob??5)}
-        ${edField('special_amaciantes_icms','Amaciantes UF ICMS',RULES.special?.amaciantes_icms??8)}
-        ${edField('special_detergente_cif','Detergente Liq. CIF',RULES.special?.detergente_cif??7)}
-        ${edField('special_detergente_fob','Detergente Liq. FOB',RULES.special?.detergente_fob??5)}
-        ${edField('special_detergente_icms','Detergente Liq. ICMS',RULES.special?.detergente_icms??8)}
-      </div>
-    </div>
-
-
-    <!-- DESTILADOS -->
-    <div class="ref-section">
-      <h3 style="color:var(--teal)">🥃 Destilados</h3>
-      <div class="mc-input-row" style="grid-template-columns:repeat(3,1fr)">
-        ${edField('dest_geral','MC Geral',RULES.destilados?.geral??6)}
-        ${edField('dest_nacional_icms','Nacional — UF ICMS',RULES.destilados?.nacional_icms??8)}
-        ${edField('dest_importado_icms','Importado — UF ICMS',RULES.destilados?.importado_icms??6)}
-        ${edField('dest_pme','PME Nacional',RULES.destilados?.pme??6)}
-        ${edField('dest_pme_icms','PME Nacional + ICMS',RULES.destilados?.pme_icms??7)}
-      </div>
-    </div>
-
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:16px;border-top:1px solid var(--border)">
-      <button class="btn-primary" style="width:auto;padding:11px 24px" onclick="collectAndSaveRules()">💾 Salvar Todas as Alterações</button>
-    </div>
-  `;
-}
 
 function edField(id, label, val) {
   return `<div class="field" style="margin-bottom:10px">
@@ -2482,36 +2281,7 @@ function getEdVal(id, def) {
   return el ? (parseFloat(el.value) || def) : def;
 }
 
-function collectAndSaveRules() {
-  RULES.eletroNormal = { g100: getEdVal('eletroNormal_g100',8), g50: getEdVal('eletroNormal_g50',9), lt50: getEdVal('eletroNormal_lt50',10) };
-  RULES.eletroPmr60  = { g100: getEdVal('eletroPmr60_g100',10), g50: getEdVal('eletroPmr60_g50',11), lt50: getEdVal('eletroPmr60_lt50',12) };
-  RULES.eletroDeamaisNormal = { mcMin: getEdVal('eletroDeamaisNormal_mcMin',5), mcMinIcms: getEdVal('eletroDeamaisNormal_mcMinIcms',6) };
-  RULES.eletroSamsungNormal = getEdVal('eletroSamsungNormal',5);
-  RULES.eletroSamsungIcms   = getEdVal('eletroSamsungIcms',6);
-  RULES.varejo  = { normal: [getEdVal('varejo_n0',8),getEdVal('varejo_n1',9),getEdVal('varejo_n2',10)],   pmr60: [getEdVal('varejo_p0',9),getEdVal('varejo_p1',10),getEdVal('varejo_p2',11)] };
-  RULES.matcon  = { normal: [getEdVal('matcon_n0',8),getEdVal('matcon_n1',9),getEdVal('matcon_n2',10)],   pmr60: [getEdVal('matcon_p0',10),getEdVal('matcon_p1',11),getEdVal('matcon_p2',12)] };
-  RULES.agrovet = { normal: [getEdVal('agrovet_n0',8),getEdVal('agrovet_n1',9),getEdVal('agrovet_n2',10)], pmr60: [getEdVal('agrovet_p0',10),getEdVal('agrovet_p1',11),getEdVal('agrovet_p2',12)] };
-  RULES.icmsVaf = { normal: [getEdVal('icmsVaf_n0',10),getEdVal('icmsVaf_n1',11),getEdVal('icmsVaf_n2',12)], pmr60: [getEdVal('icmsVaf_p0',11),getEdVal('icmsVaf_p1',12),getEdVal('icmsVaf_p2',13)] };
-  RULES.special = {
-    cabos: getEdVal('special_cabos',7),
-    unilever: getEdVal('special_unilever',6),
-    amaciantes_cif: getEdVal('special_amaciantes_cif',7),
-    amaciantes_fob: getEdVal('special_amaciantes_fob',5),
-    amaciantes_icms: getEdVal('special_amaciantes_icms',8),
-    detergente_cif: getEdVal('special_detergente_cif',7),
-    detergente_fob: getEdVal('special_detergente_fob',5),
-    detergente_icms: getEdVal('special_detergente_icms',8),
-  };
-  RULES.destilados = {
-    geral: getEdVal('dest_geral',6),
-    nacional_icms: getEdVal('dest_nacional_icms',8),
-    importado_icms: getEdVal('dest_importado_icms',6),
-    pme: getEdVal('dest_pme',6),
-    pme_icms: getEdVal('dest_pme_icms',7),
-  };
-  saveRules();
-  renderEditor();
-}
+
 
 // ─────────────────────────────────────────────
 // FILE UPLOAD HANDLER (update planilhas)
@@ -2750,73 +2520,9 @@ function searchItem() {
   </div>`;
   main.appendChild(tItem);
 
-  // ── EDITOR DE REGRAS: acessível apenas pelo ícone ⚙️ no header ──
 
-  const tEd = document.createElement('div');
-  tEd.className='tab-content'; tEd.id='tab-editor-regras';
-  tEd.innerHTML = `
-  <div style="max-width:960px;margin:0 auto">
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-icon">⚙️</span>
-        <h2>Editor de Regras de Margem</h2>
-        <span style="margin-left:auto;font-size:11px;padding:3px 10px;background:var(--danger-bg);color:var(--danger);border-radius:20px;font-weight:700">🔐 ACESSO RESTRITO</span>
-      </div>
-      <div class="panel-body" id="editor-body">
-        <div class="placeholder"><div class="placeholder-icon">⚙️</div><h3>Carregando editor...</h3></div>
-      </div>
-    </div>
 
-    <!-- UPLOAD DE PLANILHAS DENTRO DO EDITOR -->
-    <div class="panel" style="margin-top:20px;border:2px solid var(--accent);border-radius:var(--radius)">
-      <div class="panel-header" style="background:var(--accent-pale)">
-        <span class="panel-icon">📥</span>
-        <h2 style="color:var(--accent)">Atualização de Planilhas</h2>
-      </div>
-      <div class="panel-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
 
-          <!-- CP Upload -->
-          <div>
-            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-light);margin-bottom:10px">💳 Planilha de Condições de Pagamento</div>
-            <div style="border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s" 
-                 onmouseover="this.style.borderColor='var(--accent)'" 
-                 onmouseout="this.style.borderColor='var(--border)'"
-                 onclick="document.getElementById('cp-file-input-ed').click()">
-              <div style="font-size:28px;margin-bottom:6px">📂</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text-mid)">CPs_Atualizadas.xlsb/.xlsx</div>
-              <div style="font-size:11px;color:var(--text-light);margin-top:3px">CÓD · DESCRIÇÃO · PRAZO · TIPO FINANC · PMR</div>
-            </div>
-            <input type="file" id="cp-file-input-ed" accept=".xlsx,.xls,.xlsb" style="display:none" onchange="handleCpUpload(this); document.getElementById('cp-ed-status').textContent='⏳ Processando...'">
-            <div id="cp-ed-status" style="font-size:12px;margin-top:8px;color:var(--text-mid);text-align:center"></div>
-            <div id="cp-ed-info" style="font-size:11px;margin-top:4px;color:var(--text-light);text-align:center"></div>
-          </div>
-
-          <!-- Item Upload -->
-          <div>
-            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-light);margin-bottom:10px">📦 Planilha de Itens (Importação)</div>
-            <div style="border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s"
-                 onmouseover="this.style.borderColor='var(--accent)'"
-                 onmouseout="this.style.borderColor='var(--border)'"
-                 onclick="document.getElementById('item-file-input-ed').click()">
-              <div style="font-size:28px;margin-bottom:6px">📂</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text-mid)">OK.xlsx — MRT001</div>
-              <div style="font-size:11px;color:var(--text-light);margin-top:3px">CODMER · MERCADORIA · IMPORTACAO · NOMFRN</div>
-              <div style="font-size:11px;color:var(--accent);margin-top:4px;font-weight:600">✅ Base já carregada — use apenas para atualizar ou adicionar itens</div>
-            </div>
-            <input type="file" id="item-file-input-ed" accept=".xlsx,.xls" style="display:none" onchange="handleItemUpload(this); document.getElementById('item-ed-status').textContent='⏳ Processando...'">
-            <div id="item-ed-status" style="font-size:12px;margin-top:8px;color:var(--text-mid);text-align:center"></div>
-            <div id="item-ed-info" style="font-size:11px;margin-top:4px;color:var(--text-light);text-align:center"></div>
-          </div>
-
-        </div>
-        <div style="margin-top:14px;padding:10px 14px;background:var(--accent-pale);border-radius:8px;font-size:12px;color:var(--accent)">
-          ℹ️ Após importar, os dados ficam salvos no navegador e disponíveis nas abas <strong>Consulta CP</strong> e <strong>Consulta Item</strong> automaticamente.
-        </div>
-      </div>
-    </div>
-  </div>`;
-  main.appendChild(tEd);
 
   // Patch handleCpUpload to also update editor status
   const _origCpUp = window.handleCpUpload;
