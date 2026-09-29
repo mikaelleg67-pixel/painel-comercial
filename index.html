@@ -300,6 +300,14 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
               </div>
             </div>
 
+            <!-- FILTRO NÚMERO CP -->
+            <div class="field">
+              <label>Nº da Condição de Pagamento</label>
+              <input type="text" id="cp-numero-input" placeholder="Ex: 1068, VENDOR, 60 DDF..." oninput="searchCpInline()" style="width:100%">
+              <div id="cp-numero-result" style="margin-top:6px;display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px"></div>
+              <div class="field-hint">Digite o código ou número para identificar e preencher automaticamente</div>
+            </div>
+
             <div class="field">
               <label>Condição de Pagamento</label>
               <div class="select-wrap">
@@ -310,14 +318,6 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
                   <option value="vendor">Vendor</option>
                 </select>
               </div>
-            </div>
-
-            <!-- FILTRO NÚMERO CP -->
-            <div class="field" style="margin-top:10px">
-              <label>Nº da Condição de Pagamento</label>
-              <input type="text" id="cp-numero-input" placeholder="Ex: 1068, VENDOR, 60 DDF..." oninput="searchCpInline()" style="width:100%">
-              <div id="cp-numero-result" style="margin-top:6px;display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px"></div>
-              <div class="field-hint">Digite o código ou nome da CP para identificar automaticamente</div>
             </div>
 
             <!-- FILIAL -->
@@ -1182,46 +1182,56 @@ function switchTab(name, btn){
 function searchCpInline() {
   const q = (document.getElementById('cp-numero-input').value || '').trim();
   const res = document.getElementById('cp-numero-result');
-  if (!q || q.length < 2) { res.style.display = 'none'; return; }
+  if (!q || q.length < 1) { res.style.display = 'none'; return; }
 
   const matches = findCP(q);
   if (!matches.length) {
     res.style.display = '';
-    res.innerHTML = '<span style="color:var(--text-light)">Nenhuma CP encontrada para "'+q+'"</span>';
+    res.innerHTML = '<span style="color:var(--text-light);font-size:12px">Nenhuma CP encontrada para "'+q+'"</span>';
     return;
   }
 
-  const cp = matches[0]; // show best match
+  const cp = matches[0];
   const isVendor = cp.tipo === 'VENDOR';
   const isPmr60  = cp.pmr >= 60;
 
-  let html = `<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px">
-    <span style="font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--navy)">${cp.cod}</span>
-    <span style="font-size:12px;font-weight:600;color:var(--text)">${cp.desc}</span>
-    ${isVendor ? '<span class="tag tag-red">VENDOR</span>' : '<span class="tag tag-green">PRÓPRIO</span>'}
-    ${isPmr60  ? `<span class="tag tag-yellow">PMR ${cp.pmr}d ≥ 60</span>` : `<span class="tag tag-blue">PMR ${cp.pmr}d</span>`}
-  </div>
-  <div style="font-size:11px;color:var(--text-mid)">Prazo: ${cp.prazo}</div>`;
-
-  // Auto-set the CP dropdown based on what was found
+  // Auto-set dropdown
   const cpSelect = document.getElementById('cp');
   if (isVendor) {
     cpSelect.value = 'vendor';
-    html += '<div style="margin-top:6px;font-size:11px;color:var(--danger);font-weight:600">🔴 Vendor: retirar financeiro da proposta</div>';
   } else if (isPmr60) {
     cpSelect.value = 'pmr60';
-    html += '<div style="margin-top:6px;font-size:11px;color:var(--warning);font-weight:600">🟡 PMR ≥ 60 dias: aplicar regra de margem PMR</div>';
   } else {
     cpSelect.value = 'normal';
-    html += '<div style="margin-top:6px;font-size:11px;color:var(--success);font-weight:600">✅ Condição normal</div>';
   }
 
-  if (matches.length > 1) {
-    html += `<div style="margin-top:6px;font-size:11px;color:var(--text-light)">${matches.length} resultados encontrados — mostrando o melhor</div>`;
-  }
+  // Type label
+  const typeLabel = isVendor ? 'VENDOR' : isPmr60 ? 'PMR ≥ 60 dias' : 'Avaliação Normal';
+  const typeColor = isVendor ? 'var(--danger)' : isPmr60 ? 'var(--warning)' : 'var(--success)';
+  const typeTag   = isVendor ? '<span class="tag tag-red">VENDOR</span>'
+                  : isPmr60  ? '<span class="tag tag-yellow">PMR '+cp.pmr+'d</span>'
+                  :             '<span class="tag tag-green">Normal</span>';
+  const typeIcon  = isVendor ? '🔴' : isPmr60 ? '🟡' : '✅';
+  const typeAlert = isVendor
+    ? '<div style="margin-top:6px;font-size:11px;color:var(--danger);font-weight:600">🔴 Vendor: retirar financeiro da proposta</div>'
+    : isPmr60
+    ? '<div style="margin-top:6px;font-size:11px;color:var(--warning);font-weight:600">🟡 PMR ≥ 60 dias: aplicar regra de margem PMR</div>'
+    : '';
 
   res.style.display = '';
-  res.innerHTML = html;
+  res.innerHTML = `
+    <div style="background:var(--surface);border:1.5px solid ${typeColor};border-radius:8px;padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+        <span style="font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--navy)">${cp.cod}</span>
+        ${typeTag}
+        <span style="font-size:13px;font-weight:700;color:var(--text)">${cp.desc}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-mid);margin-bottom:2px">Prazo: ${cp.prazo} · PMR: ${cp.pmr} dias</div>
+      <div style="font-size:12px;font-weight:700;color:${typeColor}">${typeIcon} ${typeLabel}</div>
+      ${typeAlert}
+      ${matches.length > 1 ? '<div style="margin-top:4px;font-size:11px;color:var(--text-light)">'+matches.length+' resultados — mostrando melhor correspondência</div>' : ''}
+    </div>`;
+
   calculate();
 }
 
