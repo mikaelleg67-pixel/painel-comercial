@@ -1634,6 +1634,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 // Init
 renderHistory();
+// Restore CP last update date
+(function(){
+  const saved = localStorage.getItem('cp_last_update');
+  if(saved){
+    const el = document.getElementById('cp-last-update');
+    if(el) el.textContent = saved;
+  }
+})();
 document.getElementById('hist-count').textContent=history.length;
 if(history.length>0) document.getElementById('hist-count').className='tab-count show';
 
@@ -2313,6 +2321,10 @@ async function handleCpUpload(input) {
     statusEl.textContent = `✅ ${parsed.length} CPs carregadas — visível para todos`;
     statusEl.style.color = 'var(--success)';
     toast(`✅ ${parsed.length} condições de pagamento atualizadas para todos`);
+    const cpDate = new Date().toLocaleDateString('pt-BR');
+    localStorage.setItem('cp_last_update', cpDate);
+    const el = document.getElementById('cp-last-update');
+    if(el) el.textContent = cpDate;
   } catch(e) {
     statusEl.textContent = '❌ Erro ao ler arquivo: ' + e.message;
     statusEl.style.color = 'var(--danger)';
@@ -2446,7 +2458,7 @@ function searchItem() {
           <input type="text" id="cp-search-input" placeholder="Ex: 1068, VENDOR, 60 DDF..." oninput="searchCP()">
         </div>
         <div class="divider"></div>
-        <div style="font-size:11px;color:var(--text-light);margin-bottom:8px">${CP_DATA.length} CPs na base · <strong>Atualização: 08/12/2025</strong></div>
+        <div style="font-size:11px;color:var(--text-light);margin-bottom:8px">${CP_DATA.length} CPs na base · <strong>Atualização: <span id="cp-last-update">01/10/2026</span></strong></div>
         <div id="cp-upload-status" style="display:none"></div>
       </div>
     </div>
