@@ -733,16 +733,6 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
             <div class="dest-desc">DF, GO, ES e PA — item nacional</div>
           </div>
           <div class="dest-card">
-            <div class="dest-label">Importado · UF ICMS</div>
-            <div class="dest-val">6%</div>
-            <div class="dest-desc">DF, GO, ES e PA — item importado</div>
-          </div>
-          <div class="dest-card">
-            <div class="dest-label">PME · Nacional</div>
-            <div class="dest-val">6%</div>
-            <div class="dest-desc">Bebidas em PME</div>
-          </div>
-          <div class="dest-card">
             <div class="dest-label">PME · Nacional + ICMS</div>
             <div class="dest-val">7%</div>
             <div class="dest-desc">PME nacional geradora de crédito</div>
@@ -1879,8 +1869,6 @@ function filterSearch(){
     {cat:'Especiais',title:'Unilever com MD',mc:'6%',text:'Observação contendo "MD": MC mínima 6%. Alinhamento com Perin/Josimar.'},
     {cat:'Destilados',title:'MC Geral',mc:'6%',text:'MC mínima 6%. Compradores: Wesley, Gustavo, Gabrielle.'},
     {cat:'Destilados',title:'Nacional — UF ICMS',mc:'8%',text:'MC mínima 8% para DF/GO/ES/PA com item nacional.'},
-    {cat:'Destilados',title:'Importado — UF ICMS',mc:'6%',text:'MC mínima 6% para DF/GO/ES/PA com item importado.'},
-    {cat:'Destilados',title:'PME Nacional',mc:'6%',text:'MC mínima 6% para bebidas em PME.'},
     {cat:'Destilados',title:'PME Nacional + ICMS',mc:'7%',text:'MC mínima 7% para PME nacional em UF geradora de crédito.'},
     {cat:'Regras Gerais',title:'Vendor — Financeiro',mc:'—',text:'Quando CP = Vendor: retirar financeiro da proposta.'},
     {cat:'Regras Gerais',title:'Orçamento Negativo',mc:'—',text:'Negociações com orçamento negativo devem ser alinhadas previamente com Josimar/Pamela.'},
@@ -2240,7 +2228,7 @@ const DEFAULT_RULES = {
   icmsVaf: { normal: [10,11,12], pmr60: [11,12,13] },
   icmsMatAg: { normal: [10,11,12], pmr60: [11,12,13] },
   special: { cabos:7, cabos_icms:12, unilever:6, amaciantes_cif:7, amaciantes_fob:5, amaciantes_icms:8, detergente_cif:7, detergente_fob:5, detergente_icms:8 },
-  destilados: { geral:6, nacional_icms:8, importado_icms:6, pme:6, pme_icms:7 },
+  destilados: { geral:6, nacional_icms:8, pme_icms:7 },
   lastUpdate: 'Planilha: Última Atualização - 08.12.2025'
 };
 
