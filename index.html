@@ -163,6 +163,26 @@ select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37
 .promo-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
 .promo-table tr:last-child td{border-bottom:none}
 .promo-table tr:hover td{background:#F8FAFC}
+/* ── Regra normal x regra em exceção ── */
+.rule-compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:16px}
+.rule-block{border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.rule-block.normal{border-color:rgba(37,99,235,.4);background:var(--accent-pale)}
+.rule-block.exc{border-color:rgba(217,119,6,.55);background:var(--warning-bg)}
+.rule-block.none{border-style:dashed;background:var(--bg)}
+.rb-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-mid);margin-bottom:6px}
+.rb-mc{font-family:'DM Mono',monospace;font-size:30px;font-weight:700;line-height:1;color:var(--navy)}
+.rb-rule{font-size:12px;color:var(--text-mid);margin-top:6px;line-height:1.45}
+.rb-tag{display:inline-block;margin-top:8px;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;background:var(--navy);color:#fff}
+.banner-rules{margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,0,0,.12);display:flex;flex-direction:column;gap:4px}
+.banner-rule{font-size:12px;color:var(--text-mid);line-height:1.45}
+body.dark .rb-mc{color:#E2E8F0}
+body.dark .rb-tag{background:#2563EB}
+body.dark .rule-block.normal{background:#1E3A5F;border-color:rgba(96,165,250,.45)}
+body.dark .rule-block.exc{background:#2D1A00;border-color:rgba(217,119,6,.6)}
+body.dark .rule-block.none{background:#0F172A}
+body.dark .rb-title,body.dark .rb-rule,body.dark .banner-rule{color:#94A3B8}
+body.dark .banner-rules{border-top-color:rgba(255,255,255,.15)}
+
 .promo-note{margin-top:10px;padding:10px 14px;background:var(--teal-bg);border-radius:var(--radius-sm);font-size:12px;color:var(--teal);font-weight:500}
 .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px}
 .tag-blue{background:var(--accent-pale);color:var(--accent)}
@@ -774,10 +794,11 @@ function isIcmsUF(){
   return UFS_ICMS.includes(uf);
 }
 
-function getMcMinima(){
+function getMcMinima(catOverride){
   const dir  = document.getElementById('diretoria').value;
   const cp   = document.getElementById('cp').value;
-  const cat  = document.getElementById('categoria').value;
+  // catOverride: '' = ignora a categoria especial (regra normal); undefined = usa o campo da tela
+  const cat  = (catOverride!==undefined) ? catOverride : document.getElementById('categoria').value;
   const uf   = document.getElementById('uf').value;
   const val  = getNum('valor');
   const icms = isIcmsUF(); // respeita Filial de Expedição = 1
@@ -811,33 +832,33 @@ function getMcMinima(){
 
   if (!dir) return null;
 
-  // ── ELETRO (regras corrigidas) ──
+  // ── ELETRO ──
   if (dir==='eletro') {
-    // Vendor: sem MC mínima especial — segue regra normal da faixa
-    // Samsung
+    // Regra normal do Eletro (por valor / PMR)
+    const thN = pmr
+      ? [{min:100000,mc:RULES.eletroPmr60.g100},{min:50000,mc:RULES.eletroPmr60.g50},{min:0,mc:RULES.eletroPmr60.lt50}]
+      : [{min:100000,mc:RULES.eletroNormal.g100},{min:50000,mc:RULES.eletroNormal.g50},{min:0,mc:RULES.eletroNormal.lt50}];
+    const normalMc = (thN.find(x => val >= x.min) || thN[thN.length-1]).mc;
+
+    // EXCEÇÃO — Samsung
     if (cat==='samsung') {
       const mc = icms ? RULES.eletroSamsungIcms : RULES.eletroSamsungNormal;
       return {mc, rule:`Samsung — ${icms?'UF Geradora de Crédito: '+RULES.eletroSamsungIcms+'%':'UF Normal: '+RULES.eletroSamsungNormal+'%'}`};
     }
 
-    // Demais fornecedores Eletro (inclui Telefonia)
-    const mcMin    = icms ? RULES.eletroDeamaisNormal.mcMinIcms : RULES.eletroDeamaisNormal.mcMin;
-    const mcOrcada = getNum('mc-orcada');
-
-    // Regra normal eletro (base para comparação)
-    const th = pmr
-      ? [{min:100000,mc:RULES.eletroPmr60.g100},{min:50000,mc:RULES.eletroPmr60.g50},{min:0,mc:RULES.eletroPmr60.lt50}]
-      : [{min:100000,mc:RULES.eletroNormal.g100},{min:50000,mc:RULES.eletroNormal.g50},{min:0,mc:RULES.eletroNormal.lt50}];
-    const normal = (th.find(x => val >= x.min) || th[th.length-1]).mc;
-
-    if (mcOrcada > 0 && mcOrcada < normal) {
-      // MC orçada abaixo do normal: pode chegar até 1,5% abaixo do orçamento, limitando ao mínimo
-      const limit = Math.max(mcOrcada - 1.5, mcMin);
-      return {mc: parseFloat(limit.toFixed(1)), rule:`Eletro — Demais Fornecedores: MC orçada (${mcOrcada}%) abaixo do normal → limite: ${mcOrcada}% - 1,5% = ${(mcOrcada-1.5).toFixed(1)}% (mín. ${mcMin}%)`};
+    // EXCEÇÃO — Demais Fornecedores (Eletro)
+    if (cat==='telefonia') {
+      const mcMin    = icms ? RULES.eletroDeamaisNormal.mcMinIcms : RULES.eletroDeamaisNormal.mcMin;
+      const mcOrcada = getNum('mc-orcada');
+      if (mcOrcada > 0 && mcOrcada < normalMc) {
+        const limit = Math.max(mcOrcada - 1.5, mcMin);
+        return {mc: parseFloat(limit.toFixed(1)), rule:`Demais Fornecedores (Eletro): MC orçada (${mcOrcada}%) abaixo da regra normal → pode chegar até 1,5% abaixo do orçamento (${(mcOrcada-1.5).toFixed(1)}%), limitado ao mínimo de ${mcMin}% (${icms?'UF geradora de crédito':'UF normal'})`};
+      }
+      return {mc: Math.max(normalMc, mcMin), rule:`Demais Fornecedores (Eletro): MC orçada acima da regra normal ou não informada → segue a regra normal (${normalMc}%), mínimo de ${mcMin}%`};
     }
 
-    // MC orçada acima ou não informada: seguir regra normal
-    return {mc: Math.max(normal, mcMin), rule:`Eletro — Demais Fornecedores (${pmr?'PMR ≥60d':'Avaliação Normal'}) — mínimo absoluto: ${mcMin}%`};
+    // REGRA NORMAL
+    return {mc: normalMc, rule:`Eletro — ${pmr?'PMR ≥ 60 dias':'Avaliação Normal'}`};
   }
 
   // ── UF Geradora de crédito ICMS ──
@@ -910,8 +931,60 @@ function buildExcecoes(mcData, mcOf){
   return excecoes;
 }
 
+// ── REGRA NORMAL x REGRA EM EXCEÇÃO (categoria especial) ──
+const CAT_EXC = ['cabos','amaciantes','detergente','unilever','destilados','samsung','telefonia'];
+function catLabel(cat){
+  const sel=document.getElementById('categoria');
+  if(!sel) return cat;
+  const o=[...sel.options].find(x=>x.value===cat);
+  return o ? o.text.replace(/^[^A-Za-zÀ-ú]+/,'').trim() : cat;
+}
+function getRegras(){
+  const dir=document.getElementById('diretoria').value;
+  const cat=document.getElementById('categoria').value;
+  const normal=getMcMinima('');          // sempre a regra normal (ignora a categoria)
+  let exc=null, nota='';
+  if(cat){
+    if(CAT_EXC.includes(cat)){
+      if((cat==='samsung'||cat==='telefonia') && dir!=='eletro') nota='Categoria específica da diretoria Eletro — selecione Eletro para ver a regra em exceção.';
+      else exc=getMcMinima(cat);
+    } else nota='Esta categoria não possui regra de MC em exceção — vale a regra normal.';
+  }
+  return {cat, normal, exc, nota, gov: exc||normal};
+}
+function regraBlocosHTML(R){
+  const dir=document.getElementById('diretoria').value;
+  const normalHtml = R.normal
+    ? `<div class="rule-block normal">
+         <div class="rb-title">📏 Regra normal</div>
+         <div class="rb-mc">${R.normal.mc}%</div>
+         <div class="rb-rule">${R.normal.rule}</div>
+         ${R.exc ? '' : '<span class="rb-tag">Aplicada</span>'}
+       </div>`
+    : `<div class="rule-block none">
+         <div class="rb-title">📏 Regra normal</div>
+         <div class="rb-rule">${dir ? 'Sem regra normal para os parâmetros informados.' : 'Selecione a Diretoria para ver a regra normal.'}</div>
+       </div>`;
+  let excHtml='';
+  if(R.cat){
+    excHtml = R.exc
+      ? `<div class="rule-block exc">
+           <div class="rb-title">⚠️ Regra em exceção — ${catLabel(R.cat)}</div>
+           <div class="rb-mc">${R.exc.mc}%</div>
+           <div class="rb-rule">${R.exc.rule}</div>
+           <span class="rb-tag">Aplicada — prevalece sobre a regra normal</span>
+         </div>`
+      : `<div class="rule-block none">
+           <div class="rb-title">⚠️ Regra em exceção — ${catLabel(R.cat)}</div>
+           <div class="rb-rule">${R.nota||'Sem regra em exceção.'}</div>
+         </div>`;
+  }
+  return `<div class="rule-compare">${normalHtml}${excHtml}</div>`;
+}
+
 function calculate(){
-  const mcData = getMcMinima();
+  const R = getRegras();
+  const mcData = R.gov;
   const dir  = document.getElementById('diretoria').value;
   const cp   = document.getElementById('cp').value;
   const uf   = document.getElementById('uf').value;
@@ -935,7 +1008,7 @@ function calculate(){
   // KPI MC
   if(mcData){
     document.getElementById('kpi-mc-val').textContent=mcData.mc+'%';
-    document.getElementById('kpi-mc-sub').textContent='mínimo exigido';
+    document.getElementById('kpi-mc-sub').textContent = R.exc ? 'regra em exceção' : 'regra normal';
   } else {
     document.getElementById('kpi-mc-val').textContent='—';
     document.getElementById('kpi-mc-sub').textContent='preencha diretoria';
@@ -962,7 +1035,7 @@ function calculate(){
   document.getElementById('header-status').textContent=mcData?`MC mín: ${mcData.mc}%`:'Calculando...';
 
   // Rule card
-  if(mcData){
+  if(R.normal || R.exc){
     document.getElementById('rule-card').style.display='';
     const cpLabels={normal:'Avaliação Normal',pmr60:'PMR ≥ 60 dias',vendor:'Vendor'};
     const filExp = (document.getElementById('filial-expedicao')||{value:''}).value.trim() || '—';
@@ -974,10 +1047,8 @@ function calculate(){
       {k:'UF Destino',v:uf?`${uf}${icms?' ★ ICMS':''}`:'—'},
       {k:'Filial de Expedição',v:filExp},
       {k:'Filial de Faturamento',v:filFat},
-      {k:'Regra Aplicada',v:mcData.rule},
-      {k:'MC Mínima',v:`<span class="rule-highlight">${mcData.mc}%</span>`},
     ];
-    document.getElementById('rule-body').innerHTML=`<div class="rule-grid">${rows.map(r=>`<div class="rule-row"><div class="rule-key">${r.k}</div><div class="rule-val">${r.v}</div></div>`).join('')}</div>`;
+    document.getElementById('rule-body').innerHTML=`<div class="rule-grid">${rows.map(r=>`<div class="rule-row"><div class="rule-key">${r.k}</div><div class="rule-val">${r.v}</div></div>`).join('')}</div>` + regraBlocosHTML(R);
   } else {
     document.getElementById('rule-card').style.display='none';
   }
@@ -1038,7 +1109,8 @@ function calculate(){
 
 function validate(){
   calculate();
-  const mcData=getMcMinima();
+  const R=getRegras();
+  const mcData=R.gov;
   const dir=document.getElementById('diretoria').value;
   const cp=document.getElementById('cp').value;
   const cat=document.getElementById('categoria').value;
@@ -1058,7 +1130,7 @@ function validate(){
   const checks=[];
 
   if(mcData){
-    checks.push(`MC mínima exigida: ${mcData.mc}%`);
+    checks.push(`MC mínima exigida: ${mcData.mc}% (${R.exc?'regra em exceção':'regra normal'})`);
     if(mcOfertada>0){
       if(mcOfertada<mcData.mc) issues.push(`MC ofertada (${mcOfertada.toFixed(1)}%) abaixo do mínimo exigido (${mcData.mc}%)`);
       else checks.push(`MC ofertada (${mcOfertada.toFixed(1)}%) ≥ mínimo ✓`);
@@ -1071,13 +1143,17 @@ function validate(){
   const critAlerts=alerts.filter(a=>a.type==='red'&&!a.title.includes('MC abaixo')&&!a.title.includes('ICMS')&&!a.title.includes('Vendor')&&!a.title.includes('Almais')&&!a.title.includes('Lorenzetti')&&!a.title.includes('Havaianas')&&!a.title.includes('Cabos'));
   if(critAlerts.length>0) issues.push(...critAlerts.map(a=>a.title+': '+a.body.substring(0,80)+'...'));
 
+  const regrasTxt = `<div class="banner-rules">`
+    + (R.normal ? `<div class="banner-rule">📏 <strong>Regra normal:</strong> MC mínima ${R.normal.mc}% — ${R.normal.rule}</div>` : `<div class="banner-rule">📏 <strong>Regra normal:</strong> informe a Diretoria para calcular.</div>`)
+    + (R.cat ? (R.exc ? `<div class="banner-rule">⚠️ <strong>Regra em exceção (${catLabel(R.cat)}):</strong> MC mínima ${R.exc.mc}% — ${R.exc.rule} <em>(prevalece)</em></div>` : `<div class="banner-rule">⚠️ <strong>Regra em exceção (${catLabel(R.cat)}):</strong> ${R.nota||'sem exceção.'}</div>`) : '')
+    + `</div>`;
   banner.style.display='';
   if(issues.length===0){
     banner.className='result-banner approved';
-    banner.innerHTML=`<div class="banner-icon">✅</div><div><div class="banner-title approved">Negociação Aprovável</div><div class="banner-desc">Todos os parâmetros verificados estão dentro das regras definidas.<br><div class="banner-issues">${checks.map(c=>`<span class="banner-issue banner-issue-ok">✓ ${c}</span>`).join('')}</div></div></div>`;
+    banner.innerHTML=`<div class="banner-icon">✅</div><div><div class="banner-title approved">Negociação Aprovável</div><div class="banner-desc">Todos os parâmetros verificados estão dentro das regras definidas.<br><div class="banner-issues">${checks.map(c=>`<span class="banner-issue banner-issue-ok">✓ ${c}</span>`).join('')}</div>${regrasTxt}</div></div>`;
   } else {
     banner.className='result-banner rejected';
-    banner.innerHTML=`<div class="banner-icon">❌</div><div><div class="banner-title rejected">Negociação Não Aprovável</div><div class="banner-desc"><strong>Pendências encontradas:</strong><div class="banner-issues">${issues.map(i=>`<span class="banner-issue">✗ ${i}</span>`).join('')}</div></div></div>`;
+    banner.innerHTML=`<div class="banner-icon">❌</div><div><div class="banner-title rejected">Negociação Não Aprovável</div><div class="banner-desc"><strong>Pendências encontradas:</strong><div class="banner-issues">${issues.map(i=>`<span class="banner-issue">✗ ${i}</span>`).join('')}</div>${regrasTxt}</div></div>`;
   }
   banner.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
