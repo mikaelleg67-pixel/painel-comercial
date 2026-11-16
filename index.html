@@ -954,32 +954,29 @@ function getRegras(){
 }
 function regraBlocosHTML(R){
   const dir=document.getElementById('diretoria').value;
-  const normalHtml = R.normal
-    ? `<div class="rule-block normal">
-         <div class="rb-title">📏 Regra normal</div>
-         <div class="rb-mc">${R.normal.mc}%</div>
-         <div class="rb-rule">${R.normal.rule}</div>
-         ${R.exc ? '' : '<span class="rb-tag">Aplicada</span>'}
-       </div>`
-    : `<div class="rule-block none">
-         <div class="rb-title">📏 Regra normal</div>
-         <div class="rb-rule">${dir ? 'Sem regra normal para os parâmetros informados.' : 'Selecione a Diretoria para ver a regra normal.'}</div>
-       </div>`;
-  let excHtml='';
-  if(R.cat){
-    excHtml = R.exc
-      ? `<div class="rule-block exc">
-           <div class="rb-title">⚠️ Regra em exceção — ${catLabel(R.cat)}</div>
-           <div class="rb-mc">${R.exc.mc}%</div>
-           <div class="rb-rule">${R.exc.rule}</div>
-           <span class="rb-tag">Aplicada — prevalece sobre a regra normal</span>
-         </div>`
-      : `<div class="rule-block none">
-           <div class="rb-title">⚠️ Regra em exceção — ${catLabel(R.cat)}</div>
-           <div class="rb-rule">${R.nota||'Sem regra em exceção.'}</div>
-         </div>`;
+  // Com exceção: mostra SOMENTE a regra em exceção
+  if(R.exc){
+    return `<div class="rule-compare"><div class="rule-block exc">
+        <div class="rb-title">⚠️ Regra em exceção — ${catLabel(R.cat)}</div>
+        <div class="rb-mc">${R.exc.mc}%</div>
+        <div class="rb-rule">${R.exc.rule}</div>
+        <span class="rb-tag">Regra em exceção aplicada</span>
+      </div></div>`;
   }
-  return `<div class="rule-compare">${normalHtml}${excHtml}</div>`;
+  // Sem exceção: regra normal (com aviso quando a categoria escolhida não tem exceção)
+  const nota = (R.cat && R.nota) ? `<div class="rb-rule" style="margin-top:8px;font-style:italic">ℹ️ ${catLabel(R.cat)}: ${R.nota}</div>` : '';
+  if(R.normal){
+    return `<div class="rule-compare"><div class="rule-block normal">
+        <div class="rb-title">📏 Regra normal</div>
+        <div class="rb-mc">${R.normal.mc}%</div>
+        <div class="rb-rule">${R.normal.rule}</div>
+        <span class="rb-tag">Aplicada</span>${nota}
+      </div></div>`;
+  }
+  return `<div class="rule-compare"><div class="rule-block none">
+      <div class="rb-title">📏 Regra normal</div>
+      <div class="rb-rule">${dir ? 'Sem regra normal para os parâmetros informados.' : 'Selecione a Diretoria para ver a regra normal.'}</div>${nota}
+    </div></div>`;
 }
 
 function calculate(){
@@ -1105,10 +1102,20 @@ function calculate(){
   document.getElementById('hist-count').className='tab-count'+(history.length>0?' show':'');
   // Update exceções card directly
   if(typeof updateExcecoes==='function') updateExcecoes();
+  // Resultado da validação sempre atualizado (ou escondido se ainda não foi pedido)
+  if(_validated) renderValidation(false);
+  else document.getElementById('validation-banner').style.display='none';
 }
 
+// Depois que o usuário clica em "Validar Negociação", o resultado passa a acompanhar os filtros (não fica desatualizado)
+let _validated = false;
 function validate(){
+  _validated = true;
   calculate();
+  renderValidation(true);
+}
+
+function renderValidation(scroll){
   const R=getRegras();
   const mcData=R.gov;
   const dir=document.getElementById('diretoria').value;
@@ -1117,13 +1124,13 @@ function validate(){
   const mcOfertada=getNum('mc-ofertada');
   const alerts=getAlerts();
   const banner=document.getElementById('validation-banner');
+  const go=()=>{ if(scroll) banner.scrollIntoView({behavior:'smooth',block:'nearest'}); };
 
   if(!dir&&!cat){
     banner.style.display='';
     banner.className='result-banner pending';
     banner.innerHTML=`<div class="banner-icon">⚠️</div><div><div class="banner-title pending">Dados Insuficientes</div><div class="banner-desc">Preencha ao menos a Diretoria e o Valor da Negociação para validar.</div></div>`;
-    banner.scrollIntoView({behavior:'smooth',block:'nearest'});
-    return;
+    go(); return;
   }
 
   const issues=[];
@@ -1143,10 +1150,18 @@ function validate(){
   const critAlerts=alerts.filter(a=>a.type==='red'&&!a.title.includes('MC abaixo')&&!a.title.includes('ICMS')&&!a.title.includes('Vendor')&&!a.title.includes('Almais')&&!a.title.includes('Lorenzetti')&&!a.title.includes('Havaianas')&&!a.title.includes('Cabos'));
   if(critAlerts.length>0) issues.push(...critAlerts.map(a=>a.title+': '+a.body.substring(0,80)+'...'));
 
-  const regrasTxt = `<div class="banner-rules">`
-    + (R.normal ? `<div class="banner-rule">📏 <strong>Regra normal:</strong> MC mínima ${R.normal.mc}% — ${R.normal.rule}</div>` : `<div class="banner-rule">📏 <strong>Regra normal:</strong> informe a Diretoria para calcular.</div>`)
-    + (R.cat ? (R.exc ? `<div class="banner-rule">⚠️ <strong>Regra em exceção (${catLabel(R.cat)}):</strong> MC mínima ${R.exc.mc}% — ${R.exc.rule} <em>(prevalece)</em></div>` : `<div class="banner-rule">⚠️ <strong>Regra em exceção (${catLabel(R.cat)}):</strong> ${R.nota||'sem exceção.'}</div>`) : '')
-    + `</div>`;
+  // Mostra SOMENTE a regra que vale: a exceção da categoria (se houver) ou a regra normal
+  let regraLinhas;
+  if(R.exc){
+    regraLinhas = `<div class="banner-rule">⚠️ <strong>Regra em exceção (${catLabel(R.cat)}):</strong> MC mínima ${R.exc.mc}% — ${R.exc.rule}</div>`;
+  } else {
+    regraLinhas = R.normal
+      ? `<div class="banner-rule">📏 <strong>Regra normal:</strong> MC mínima ${R.normal.mc}% — ${R.normal.rule}</div>`
+      : `<div class="banner-rule">📏 <strong>Regra normal:</strong> informe a Diretoria para calcular.</div>`;
+    if(R.cat && R.nota) regraLinhas += `<div class="banner-rule">ℹ️ ${catLabel(R.cat)}: ${R.nota}</div>`;
+  }
+  const regrasTxt = `<div class="banner-rules">${regraLinhas}</div>`;
+
   banner.style.display='';
   if(issues.length===0){
     banner.className='result-banner approved';
@@ -1155,7 +1170,7 @@ function validate(){
     banner.className='result-banner rejected';
     banner.innerHTML=`<div class="banner-icon">❌</div><div><div class="banner-title rejected">Negociação Não Aprovável</div><div class="banner-desc"><strong>Pendências encontradas:</strong><div class="banner-issues">${issues.map(i=>`<span class="banner-issue">✗ ${i}</span>`).join('')}</div>${regrasTxt}</div></div>`;
   }
-  banner.scrollIntoView({behavior:'smooth',block:'nearest'});
+  go();
 }
 
 function saveToHistory(){
